@@ -130,7 +130,11 @@ class Mesh(object):
             e = tuple(sorted([nodelist[2*i],nodelist[2*i+2]]))
             self.edge_mdp[e]=nodelist[2*i+1]
 
-
+   def combine_mesh(m1,m2):
+      import copy
+      m3 = copy.deepcopy(m1)
+      m3.devour_mesh(m2)
+      return m3
 
    def devour_mesh(self, new_mesh):
       dp = self._dp
