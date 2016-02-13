@@ -163,16 +163,16 @@ class Mesh(object):
             self.nrmls[pos] = key
             self.rev_nm[key] = pos
             self._cur_avail_nm_id+=1
-      logging.critical(renum_nrml) 
+      # logging.critical(renum_nrml) 
       for i in new_mesh.elems:
          einfo = new_mesh.elems[i]
          nodelist = list(einfo[POS_NODLIST])
          nrmlist = list(einfo[POS_NODLIST])
-         logging.critical(nrmlist)
+         # logging.critical(nrmlist)
          for j in range(einfo[POS_ELEMTYPE]):
             nodelist[j] = renum_node[nodelist[j]]
             nrmlist[j] = renum_nrml[nrmlist[j]]
-         logging.critical(nrmlist)
+         # logging.critical(nrmlist)
          self.elems[self._cur_avail_el_id] = (einfo[0],einfo[1],tuple(nodelist),tuple(nrmlist))
          self._cur_avail_el_id+=1
             
@@ -250,7 +250,7 @@ class Mesh(object):
             a = Arrow3D([b[0],e[0]],[b[1],e[1]],[b[2],e[2]], mutation_scale=10, lw=1, arrowstyle="-|>", color="k")
             ax.add_artist(a)
 
-   def draw_model(self,scale=0.04,with_arrow=False):
+   def draw_model(self,scale=0.04,with_arrow=False,points=[]):
       from mpl_toolkits.mplot3d import axes3d
       import matplotlib.pyplot as plt
 
@@ -261,6 +261,15 @@ class Mesh(object):
       for i in self.elems:
          self._draw_element(i,ax,scale,with_arrow)
       # plt.show()
+      if len(points)!=0:
+          loc=np.zeros((3,len(points)))
+          p=0
+          for i in points:
+              loc[0,p] = self.nodes[i][0]
+              loc[1,p] = self.nodes[i][1]
+              loc[2,p] = self.nodes[i][2]
+              p+=1
+          ax.scatter(loc[0,:],loc[1,:],loc[2,:],color="g",s=100)
       return plt
 
    def _find_mid_point(self,e):
@@ -296,7 +305,7 @@ class Mesh(object):
     #                                                                 #
     ###################################################################
          
-   def _output_as_fs(self,path):
+   def _output_as_fs(self,path,flag_damp=True):
        f_sf = open(path,"w")
        f_sf.write('{0:<5d}'.format(self._cur_avail_el_id-1) + '{0:<5d}\n'.format(self._cur_avail_nd_id-1))
        acc_sf_elem = 1
@@ -307,11 +316,14 @@ class Mesh(object):
             for j in range(8):#TODO add triangle support
                     str1 += '{0:<9.6f}     '.format(self.nodes[self.elems[i_elem][2][j]][0])
                     str2 += '{0:<9.6f}     '.format(self.nodes[self.elems[i_elem][2][j]][1])
-                    str3 += '{0:<9.6f}     '.format(0.)
+                    if flag_damp:
+                        str3 += '{0:<9.6f}     '.format(0.)
+
             f_sf.write(('{0:<5d}   8\n').format(acc_sf_elem))
             f_sf.write(str1+'\n')
             f_sf.write(str2+'\n')
-            f_sf.write(str3+'\n')
+            if flag_damp:
+                f_sf.write(str3+'\n')
             acc_sf_elem += 1
        f_sf.close()
 
@@ -358,7 +370,7 @@ class Mesh(object):
       else:
          print "Please enter \'b\' for body format or \'f\' for free surface format"
 
-      def read_sf_file(self,path):
+   def read_sf_file(self,path):
 
        with open(path,"r") as f:
           num_elem =[int(i) for i in f.readline().split()][0]
@@ -527,10 +539,14 @@ class Mesh(object):
        assert(len(vector)==3)
        #TODO complete this, make sure edge_info is generated before read add
        f = open(path,"r")
-
+       flag = True
        renum_add_node = {}
-       for i_node in range(num_add_node): 
-           tmp = [float(i) for i in f.readline().split()]
+       # for i_node in range(num_add_node): 
+   
+       while True:
+           tmp = [float(i) for i in f.readline().replace('elem','0').split()]
+           if len(tmp) != 4:
+               break
            x = tmp[1]
            y = tmp[2]
            z = tmp[3]+z_offset    
@@ -541,14 +557,17 @@ class Mesh(object):
                self.rev_nd[key] = pos
                self.nodes[pos] = (x,y,z)
                self._cur_avail_nd_id+=1
-       logging.debug(renum_add_node)
+       logging.critical(renum_add_node)
 
       
-
+       flag = True
+       tmp = [int(i) for i in tmp]
        renum_elem={}
+
        # TODO throw duplicate elems
-       for i_elem in range(num_add_elem):
-           tmp = [int(i) for i in (f.readline().replace('elem','0')).split()]
+       # for i_elem in range(num_add_elem):
+       while flag == True:
+           print tmp
            nodelist = []
            ## update node number in nodelist
            for k in range(4):#FIXME add traingle support
@@ -561,11 +580,14 @@ class Mesh(object):
                nodelist[2*e+1] = midp
                renum_add_node[midp]=midp#NOTE this fixed nrml generation problem
            nodelist.pop(8)
-           logging.debug(nodelist)
+           # logging.debug(nodelist)
            # nrmlist = np.array(nodelist)+self._cur_avail_nm_id-1# nrmlist id shoud be offset according to current num of nrmls
            renum_elem[tmp[0]]=self._cur_avail_el_id
            self.elems[self._cur_avail_el_id] = [comment,8,tuple(nodelist)]#,tuple(nrmlist)]   
            self._cur_avail_el_id+=1
+           tmp = [int(i) for i in (f.readline().replace('elem','0')).split()]
+           if len(tmp)==0:
+               flag = False
        
        node_2_nrml={}
        for i_node in renum_add_node :
@@ -575,7 +597,7 @@ class Mesh(object):
            self.rev_nm[key] = self._cur_avail_nm_id
            node_2_nrml[renum_add_node[i_node]] = self._cur_avail_nm_id
            self._cur_avail_nm_id+=1
-       logging.critical(renum_elem)
+       # logging.critical(renum_elem)
        logging.critical(node_2_nrml)
        for i_elem in renum_elem:
            elem = self.elems[renum_elem[i_elem]]
@@ -583,7 +605,8 @@ class Mesh(object):
            nrmlist=[]
            logging.critical(nodelist)
            for j in range(elem[1]):
-              nrmlist.append(node_2_nrml[nodelist[j]])
+               logging.critical(j)
+               nrmlist.append(node_2_nrml[nodelist[j]])
            self.elems[renum_elem[i_elem]].append(nrmlist)
 
 
