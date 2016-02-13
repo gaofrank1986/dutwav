@@ -153,9 +153,9 @@ class Mesh(object):
       renum_nrml={}
       for i in new_mesh.nrmls:
          nlist = list(new_mesh.nrmls[i])
-         # logging.critical(nlist)
+         # logging.debug(nlist)
          nlist[0] = renum_node[nlist[0]]
-         # logging.critical(nlist)
+         # logging.debug(nlist)
          key = tuple(nlist)
          pos = self.rev_nm.get(key,self._cur_avail_nm_id)
          renum_nrml[i] = pos
@@ -163,16 +163,16 @@ class Mesh(object):
             self.nrmls[pos] = key
             self.rev_nm[key] = pos
             self._cur_avail_nm_id+=1
-      # logging.critical(renum_nrml) 
+      # logging.debug(renum_nrml) 
       for i in new_mesh.elems:
          einfo = new_mesh.elems[i]
          nodelist = list(einfo[POS_NODLIST])
          nrmlist = list(einfo[POS_NODLIST])
-         # logging.critical(nrmlist)
+         # logging.debug(nrmlist)
          for j in range(einfo[POS_ELEMTYPE]):
             nodelist[j] = renum_node[nodelist[j]]
             nrmlist[j] = renum_nrml[nrmlist[j]]
-         # logging.critical(nrmlist)
+         # logging.debug(nrmlist)
          self.elems[self._cur_avail_el_id] = (einfo[0],einfo[1],tuple(nodelist),tuple(nrmlist))
          self._cur_avail_el_id+=1
             
@@ -535,11 +535,12 @@ class Mesh(object):
        dp = self._dp
        num_add_node = 12
        num_add_elem = 6
+
+       node_set=set()
       
        assert(len(vector)==3)
        #TODO complete this, make sure edge_info is generated before read add
        f = open(path,"r")
-       flag = True
        renum_add_node = {}
        # for i_node in range(num_add_node): 
    
@@ -553,13 +554,14 @@ class Mesh(object):
            key = (round(x,dp),round(y,dp),round(z,dp))
            pos = self.rev_nd.get(key,self._cur_avail_nd_id)
            renum_add_node[int(tmp[0])] = pos         
+           node_set.add(pos)
            if pos == self._cur_avail_nd_id:
                self.rev_nd[key] = pos
                self.nodes[pos] = (x,y,z)
                self._cur_avail_nd_id+=1
-       logging.critical(renum_add_node)
+       logging.debug(renum_add_node)
+       logging.debug(len(renum_add_node))
 
-      
        flag = True
        tmp = [int(i) for i in tmp]
        renum_elem={}
@@ -578,7 +580,8 @@ class Mesh(object):
                edge = tuple(sorted([nodelist[2*e],nodelist[2*e+2]]))
                midp = self._find_mid_point(edge)
                nodelist[2*e+1] = midp
-               renum_add_node[midp]=midp#NOTE this fixed nrml generation problem
+               node_set.add(midp)
+               # renum_add_node[midp]=midp#NOTE {not work with coincident node for input}this fixed nrml generation problem
            nodelist.pop(8)
            # logging.debug(nodelist)
            # nrmlist = np.array(nodelist)+self._cur_avail_nm_id-1# nrmlist id shoud be offset according to current num of nrmls
@@ -590,22 +593,23 @@ class Mesh(object):
                flag = False
        
        node_2_nrml={}
-       for i_node in renum_add_node :
-           key=(renum_add_node[i_node],round(vector[0],dp),round(vector[1],dp),round(vector[2],dp))
+       for i_node in node_set :
+           key=(i_node,round(vector[0],dp),round(vector[1],dp),round(vector[2],dp))
            # NOTE didn't check coincident nrml
            self.nrmls[self._cur_avail_nm_id] = key
            self.rev_nm[key] = self._cur_avail_nm_id
-           node_2_nrml[renum_add_node[i_node]] = self._cur_avail_nm_id
+           node_2_nrml[i_node] = self._cur_avail_nm_id
+
            self._cur_avail_nm_id+=1
-       # logging.critical(renum_elem)
-       logging.critical(node_2_nrml)
+       # logging.debug(renum_elem)
+       logging.debug(node_2_nrml)
        for i_elem in renum_elem:
            elem = self.elems[renum_elem[i_elem]]
            nodelist = elem[2]
            nrmlist=[]
-           logging.critical(nodelist)
+           logging.debug(nodelist)
            for j in range(elem[1]):
-               logging.critical(j)
+               logging.debug(j)
                nrmlist.append(node_2_nrml[nodelist[j]])
            self.elems[renum_elem[i_elem]].append(nrmlist)
 
