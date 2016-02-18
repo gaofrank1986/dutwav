@@ -115,7 +115,13 @@ class Mesh(object):
          if self.elems[i][0] in tag_list:
             self.elems[i][0] = new_tag
         
-              
+   def _count_elem(self,tag=[]):
+       result={}
+       for i in self.elems:
+           key = self.elems[i][0]
+           result[key] = result.get(key,0)+1
+       return result 
+           
    def get_edge_info(self):
       self.edge_mdp = {}
       self._edge_info = True
@@ -271,6 +277,27 @@ class Mesh(object):
               p+=1
           ax.scatter(loc[0,:],loc[1,:],loc[2,:],color="g",s=100)
       return plt
+  
+   def _mark_surface_elems(self):
+       surface_node = set()
+       surface_elem = set()
+       
+       for i in self.nodes:
+           if(abs(self.nodes[i][2])<1e-5):
+               surface_node.add(i)
+
+       for i in self.elems:
+           nodelist = set(self.elems[i][POS_NODLIST]) 
+           if nodelist.issubset(surface_node):
+               surface_elem.add(i)
+       
+       for i in surface_elem:
+           self.elems[i][0] = "surface"
+
+               
+
+       
+
 
    def _find_mid_point(self,e):
        ''' 
@@ -370,7 +397,7 @@ class Mesh(object):
       else:
          print "Please enter \'b\' for body format or \'f\' for free surface format"
 
-   def read_sf_file(self,path):
+   def read_sf_file(self,path,flag_damp=True):
 
        with open(path,"r") as f:
           num_elem =[int(i) for i in f.readline().split()][0]
@@ -379,7 +406,9 @@ class Mesh(object):
               tmp = f.readline().split()
               tmp1 = [float(i) for i in f.readline().split()]
               tmp2 = [float(i) for i in f.readline().split()]
-              tmp3 = [float(i) for i in f.readline().split()]
+              if flag_damp==True:
+                  tmp3 = [float(i) for i in f.readline().split()]
+
               nodelist = []
               for j in range(8):
                   node = (round(tmp1[j],dp),round(tmp2[j],dp),round(0.0,dp))
