@@ -1,0 +1,14 @@
+v1.3 Mon,Feb 22 2016
+add func:
+	_mark_elem_withr: update tag for elem with in r range 
+	_redo_bd_nrml: update all cylinderical body nrmls
+i	_update_all_nrmls: update all nrmls using given vector
+
+v1.2 Mon,Feb 22,2016
+add func: mirror_mesh,shift_mesh ,_rebuild_rev_info
+
+v1.1 Sun,Feb 21,2016
+add POS enumeration for clarity
+
+v1.0
+add _Mesh_core to avoid too many funcs in Mesh class
