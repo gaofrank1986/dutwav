@@ -1,3 +1,15 @@
+V1.5 Tue,Feb 23 2016
+add func:
+	result class
+	output fterm
+	replace fterm in targed result
+v1.4 Tue,Feb 23 2016
+add func:
+	export_tecplt_quad
+	export_tecplt_poly	
+	def_damp_func
+	draw~damp coeff
+	copy code to set euqal axis from web
 v1.3 Mon,Feb 22 2016
 add func:
 	_mark_elem_withr: update tag for elem with in r range 

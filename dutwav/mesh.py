@@ -22,6 +22,7 @@ class Mesh(_Mesh_core):
         _Mesh_core.__init__(self,dp)
         self._num_fs_elem = 0
         self._num_bd_elem = 0
+        self.damp_info={}
         # self._zonelist=[]
         # self._waterline=[]
         
@@ -76,6 +77,18 @@ class Mesh(_Mesh_core):
            result[key] = result.get(key,0)+1
        return result 
            
+   def _generate_damp_info(self,f=None):
+       surface_node = set()
+       for i in self.nodes:
+          if(abs(self.nodes[i][2])<1e-5):
+             surface_node.add(i)
+       for i in surface_node:
+          r = np.sqrt(self.nodes[i][0]**2+self.nodes[i][1]**2)
+          if f:
+            self.damp_info[i] = f(r)
+          if not f:
+            self.damp_info[i] = 0.0
+
 
 
    def _get_waterline_node(self):
@@ -118,16 +131,32 @@ class Mesh(_Mesh_core):
             a = Arrow3D([b[0],e[0]],[b[1],e[1]],[b[2],e[2]], mutation_scale=10, lw=1, arrowstyle="-|>", color="k")
             ax.add_artist(a)
 
-   def draw_model(self,scale=0.04,with_arrow=False,points=[]):
+   def _draw_element_damp(self,id,ax,scale,c='red'):
+      this_elem = self.elems[id]
+      loc = np.zeros((3,this_elem[POS.TYPE]+1),dtype='float')
+      nrm = np.zeros((6,this_elem[POS.TYPE]),dtype='float')
+      for i in range(this_elem[POS.TYPE]):
+         loc[0:2,i] = self.nodes[this_elem[POS.NODLIST][i]][0:2]
+         loc[2,i] = self.damp_info[this_elem[POS.NODLIST][i]]
+         loc[:,-1] = loc[:,0] 
+      ax.plot_wireframe(loc[0,:],loc[1,:],loc[2,:],rstride=5,cstride=5,color=c)
+    
+       
+   def draw_model(self,scale=0.04,with_arrow=False,points=[],d = False):
       from mpl_toolkits.mplot3d import axes3d
       import matplotlib.pyplot as plt
-
+      from dutwav.util import set_aspect_equal_3d
+      
+      
       fig = plt.figure()
       # ax = fig.add_subplot(111,projection='3d')
       ax = fig.gca(projection='3d')
-      ax.set_aspect("equal")
+      # ax.set_aspect("equal")
       for i in self.elems:
-         self._draw_element(i,ax,scale,with_arrow)
+          if not d:
+             self._draw_element(i,ax,scale,with_arrow)
+          else:
+             self._draw_element_damp(i,ax,scale)
       # plt.show()
       if len(points)!=0:
           loc=np.zeros((3,len(points)))
@@ -138,8 +167,99 @@ class Mesh(_Mesh_core):
               loc[2,p] = self.nodes[i][2]
               p+=1
           ax.scatter(loc[0,:],loc[1,:],loc[2,:],color="g",s=100)
+      set_aspect_equal_3d(ax)
       plt.show()
       # return plt
+
+
+   def export_tecplt_quad(self,path):
+       with open(path,"wb") as f:
+           num_pts = len(self.nrmls)
+           num_elms = len(self.elems)
+           f.write("""
+           TITLE = "3D Mesh Grid Data for Element Boundary"
+            VARIABLES = "X", "Y", "Z","DX","DY","DZ"
+                """)
+           f.write('ZONE T="MESH" N=        {:d} ,E=         {:d} \
+                   ,F=FEPOINT,ET=QUADRILATERAL\n'.format(num_pts,num_elms))
+           for i in self.nrmls:
+               info = self.nrmls[i]
+               node = self.nodes[info[0]]
+               f.write('   '.join('{0:<9.6f}'.format(j) for j in node[0:3]))
+               f.write('   ')
+               f.write('   '.join('{0:<9.6f}'.format(j) for j in info[1:4]))
+               f.write("\n")
+           for i in self.elems:
+               info = self.elems[i][POS.NRMLIST]
+               # nlist = [info[0],info[2],info[4],info[6]] 
+               nlist = list(info)[::2]
+               f.write('   '.join('{0:<8d}'.format(j) for j in nlist))
+               f.write("\n")
+
+   def export_tecplt_poly(self,path):
+       with open(path,"wb") as f:
+           num_pts = len(self.nrmls)
+           num_elem = len(self.elems)
+           f.write("""
+           TITLE = "3D Mesh Grid Data for Element Boundary"
+            VARIABLES = "X", "Y", "Z","DX","DY","DZ"
+                """)
+           f.write('ZONE T="Mesh", ZONETYPE=FEPOLYGON, NODES= {:6d}, ELEMENTS= {:6d}, Faces= {:6d}, NumConnectedBoundaryFaces=0,TotalNumBoundaryConnections=0\n'.format(num_pts,num_elem,8*num_elem))
+           # f.write('ZONE T="MESH" N=        {:d} ,E=         {:d} \
+                   # ,F=FEPOINT,ET=QUADRILATERAL\n'.format(num_pts,num_elms))
+           psl = []
+           for i in range(8): 
+               psl.append([])
+           for i in self.nrmls:
+               info = self.nrmls[i]
+               node = self.nodes[info[0]]
+               for j in [0,1,2]:
+                   psl[j].append(node[j])
+                   psl[j+3].append(info[j+1]) 
+
+           # print psl[0] 
+           for i in range(6):
+               max_len = len(psl[0])
+               cha = max_len/500 + 1
+               for k in range(cha):
+                   f.write('   '.join('{0:<7.4f}'.format(j) for j in psl[i][k*500:(k+1)*500]))
+                   f.write('\n')
+           # str3=''
+           # str2=''
+           
+           for i in self.elems.keys():
+               n = self.elems[i][POS.TYPE]
+               nlist = list(self.elems[i][POS.NRMLIST])
+               nlist.append(nlist[0])
+               print nlist
+               print n
+               for k in range(n):
+                   # a = nlist[k]
+                   # b = nlist[k+1]
+                   # print a,b 
+                   # f.write(' {0:<d} {0:<d}'.format(a,b))
+                   f.write(' '.join('{0:<d}'.format(j) for j in nlist[k:k+2]))
+                   f.write("\n")
+                   psl[6].append(i)
+                   psl[7].append(0)
+                   # str3+=' {0:<d}'.format(int(i))
+                   # str2+=' {0:<d}'.format(0)
+               # if i%6 ==0 :
+                   # str3+='\n'
+               # if i%10 ==0 :
+                   # str2+='\n'
+           # str3+='\n'
+           # str2+='\n'
+           # f.write(str3)
+           # f.write(str2)
+           for i in [6,7]:
+               max_len = len(psl[6])
+               cha = max_len/500 + 1
+               for k in range(cha):
+                   f.write('   '.join('{0:<d}'.format(j) for j in psl[i][k*500:(k+1)*500]))
+                   f.write('\n')
+
+
 
    def output(self,path,kind):
       if kind=='b':
@@ -190,7 +310,6 @@ class Mesh(_Mesh_core):
          nrml = np.round(nrml,self._dp)
          key = (info[0],nrml[0],nrml[1],nrml[2])
          self.rev_nm[key] = i
-
 
           
 

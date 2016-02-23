@@ -69,7 +69,7 @@ class _Mesh_core(object):
         self.nrmls ={}
         self.coors = {}
         self.edge_mdp={}
-        self.damp={}
+        # self.damp={}
         
         self._cur_avail_nd_id=1
         self._cur_avail_el_id=1
@@ -253,7 +253,14 @@ class _Mesh_core(object):
     #                                                                 #
     ###################################################################
          
-   def _output_as_fs(self,path,flag_damp=True):
+   def _output_as_fs(self,path,kind=1):
+       """
+       _output_as_fs(path,kind=1)
+       kind = 0, no damp info
+       kind = 1, damp info =0,mesh do not need to have damp info setup
+       kind = 2, need damp info setup
+       currently: only 8-node elem
+       """
        f_sf = open(path,"w")
        f_sf.write('{0:<5d}'.format(self._cur_avail_el_id-1) + '{0:<5d}\n'.format(self._cur_avail_nd_id-1))
        acc_sf_elem = 1
@@ -261,21 +268,30 @@ class _Mesh_core(object):
             str1 = ''
             str2 = ''
             str3 = ''
+            nodelist = self.elems[i_elem][POS.NODLIST]
             for j in range(8):#TODO add triangle support
-                    str1 += '{0:<9.6f}     '.format(self.nodes[self.elems[i_elem][2][j]][0])
-                    str2 += '{0:<9.6f}     '.format(self.nodes[self.elems[i_elem][2][j]][1])
-                    if flag_damp:
+                    
+                    str1 += '{0:<9.6f}     '.format(self.nodes[nodelist[j]][0])
+                    str2 += '{0:<9.6f}     '.format(self.nodes[nodelist[j]][1])
+                    if kind==2:
+                        dval = self.damp_info.get(nodelist[j],0.)
+                        str3 += '{0:<9.6f}     '.format(dval)
+                    if kind==1:
                         str3 += '{0:<9.6f}     '.format(0.)
 
             f_sf.write(('{0:<5d}   8\n').format(acc_sf_elem))
             f_sf.write(str1+'\n')
             f_sf.write(str2+'\n')
-            if flag_damp:
+            if kind:
                 f_sf.write(str3+'\n')
             acc_sf_elem += 1
        f_sf.close()
 
    def _output_as_bd(self,path):
+       """
+       _output_as_bd(path)
+       output using body mesh format
+       """
        f = open(path,"w")
        f.write('0\n') # write isys
        # READ(2,*)   NELEMB, NNB, NNBD, IPOL
@@ -341,7 +357,7 @@ class _Mesh_core(object):
                       self.nodes[self._cur_avail_nd_id] = (tmp1[j],tmp2[j],0.0)#create new node in dict_fs_node
                       nodelist.append(self._cur_avail_nd_id)
                       if flag_damp:
-                          self.damp[self._cur_avail_nd_id] = tmp3[j]
+                          self.damp_info[self._cur_avail_nd_id] = tmp3[j]
                       self._cur_avail_nd_id+=1
               self.elems[self._cur_avail_el_id] = ['free surface',8,tuple(nodelist),tuple(nodelist)]
               self._cur_avail_el_id += 1

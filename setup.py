@@ -1,6 +1,6 @@
 from setuptools import setup
 
-setup(name='dutwav',version='0.1',
+setup(name='dutwav',version='1.2',
         description="pre-processing tool for DUTWAV",
         url='',
         author ='frank gao',
