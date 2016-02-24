@@ -9,6 +9,13 @@ class POS(Enum):
     NODLIST=2
     NRMLIST=3
 
+class FILETYPE(Enum):
+    BODY=0
+    SURFACE_WO_DAMP=1
+    SURFACE_W_DAMP=2
+    SURFACE_AUTO_DAMP=3
+    EXTERNAL = 9
+
 class Node(object):
     # __slots__={'pos','id'}
     def __init__(self,id,pos):
@@ -53,40 +60,41 @@ class Element(object):
    def print_elem(self,flag=0): # flag =0  for nodelist,flag=1 for nrml list
         pass
 
+
+#=============================================
+
 class _Mesh_core(object):
    def __init__(self,dp=4):
         self.nsys = 0
-        self.nelem = 0
-        self.nnode = 0
-        self.nnrml = 0
+        # self.nelem = 0
+        # self.nnode = 0
+        # self.nnrml = 0
         
 
         self.nodes = {}
         self.elems = {}
         self.rev_nd = {}
         self.rev_nm = {}
-        self.rev_el={}
+        # self.rev_el={}
         self.nrmls ={}
-        self.coors = {}
-        self.edge_mdp={}
+        # self.coors = {}
+        self.edges={}
         # self.damp={}
         
-        self._cur_avail_nd_id=1
-        self._cur_avail_el_id=1
-        self._cur_avail_nm_id=1
-        self._dp=4
+        self.__cur_avail_nd_id=1
+        self.__cur_avail_el_id=1
+        self.__cur_avail_nm_id=1
+        self.__dp=4
 
-   def is_exist_node(self,pos):
+   def _is_exist_node(self,pos):
         assert(len(pos)==3)
-        key = (round(pos[0],self._dp),round(pos[1],self._dp),round(pos[2],self._dp))
+        key = (round(pos[0],self.__dp),round(pos[1],self.__dp),round(pos[2],self.__dp))
         return(key in self.rev_nd)
 
-   def is_exist_nrml(self,node_id,pos):
+   def _is_exist_nrml(self,node_id,pos):
        assert(len(pos)==3)
-       key = (node_id,round(pos[0],self._dp),round(pos[1],self._dp),round(pos[2],self._dp))
+       key = (node_id,round(pos[0],self.__dp),round(pos[1],self.__dp),round(pos[2],self.__dp))
        return(key in self.rev_nd)
-
-
 
    def _is_node_fs(self,n,z=0):
        xyz=self.nodes[n]
@@ -94,23 +102,58 @@ class _Mesh_core(object):
            return True
        return False
    
-   def test_mesh(self):
-      """
-      first n node must be surface node
-      first elems must be surface elems
-      """
-      pass
-
         
-#    def _count_elem(self,tag=[]):
-       # result={}
-       # for i in self.elems:
-           # key = self.elems[i][0]
-           # result[key] = result.get(key,0)+1
-       # return result 
-           
+   
+
+   def _redo_bd_nrml(self):
+      import scipy.linalg as la
+      flag = True
+      for i in self.elems:
+         if self.elems[i][0] != 'body':
+            flag = False
+      if not flag:
+         print "Please make sure all elements is defined as 'body'"
+         return
+      self.rev_nm={}
+      for i in self.nrmls:
+         info = self.nrmls[i]
+         xyz = np.array(self.nodes[info[0]],dtype='float64')
+         xyz[2] = 0.
+         nrml = xyz/la.norm(xyz)#normalize vector 
+         self.nrmls[i] = (info[0],nrml[0],nrml[1],nrml[2])
+         nrml = np.round(nrml,self.__dp)
+         key = (info[0],nrml[0],nrml[1],nrml[2])
+         self.rev_nm[key] = i
+      return
+
+   def _update_all_nrml(self,vector):
+      print "vecot will be auto normalized"
+      import scipy.linalg as la
+      self.rev_nm={}
+      for i in self.nrmls:
+         info = self.nrmls[i]
+         xyz = np.array(vector,dtype='float64')
+         nrml = xyz/la.norm(xyz)#normalize vector 
+         self.nrmls[i] = (info[0],nrml[0],nrml[1],nrml[2])
+         nrml = np.round(nrml,self.__dp)
+         key = (info[0],nrml[0],nrml[1],nrml[2])
+         self.rev_nm[key] = i
+  
+   def _rebuild_rev_info(self):
+      self.rev_nd = {}
+      self.rev_nm = {}
+      for i in self.nodes:
+          xyz = self.nodes[i]
+          key = (round(xyz[0],self.__dp),round(xyz[1],self.__dp),round(xyz[2],self.__dp))
+          self.rev_nd[key] = i
+      for i in self.nrmls:
+          info = self.nrmls[i]
+          key = (info[0],round(info[1],self.__dp),round(info[2],self.__dp),round(info[3],self.__dp))
+          self.rev_nm[key] = i
+
+  
    def get_edge_info(self):
-      self.edge_mdp = {}
+      self.edges = {}
       self._edge_info = True
       for i in self.elems:
          elem_info = self.elems.get(i,None)
@@ -121,37 +164,66 @@ class _Mesh_core(object):
          logging.debug(nodelist)
          for i in range(elem_info[POS.TYPE]/2):
             e = tuple(sorted([nodelist[2*i],nodelist[2*i+2]]))
-            self.edge_mdp[e]=nodelist[2*i+1]
+            self.edges[e]=nodelist[2*i+1]
        
 
-
-#    def get_waterline_node(self):
-       # print "elements in mesh must have well-defined tag\n\
-       # only 'body' elements will be looked into"
-       # nodes=set()
-       # for i in self.elems:
-           # info = self.elems[i]
-           # if info[0]=='body':
-               # nodelist = info[POS_NODLIST]
-               # for j in range(info[POS_ELEMTYPE]):
-                   # if self._is_node_fs(nodelist[j]):
-                       # nodes.add(nodelist[j])
-       # return(nodes)                
-                    
-   def _rebuild_rev_info(self):
-      self.rev_nd = {}
-      self.rev_nm = {}
-      for i in self.nodes:
-          xyz = self.nodes[i]
-          key = (round(xyz[0],self._dp),round(xyz[1],self._dp),round(xyz[2],self._dp))
-          self.rev_nd[key] = i
-      for i in self.nrmls:
-          info = self.nrmls[i]
-          key = (info[0],round(info[1],self._dp),round(info[2],self._dp),round(info[3],self._dp))
-          self.rev_nm[key] = i
+   def _find_mid_point(self,e):
+       ''' 
+       if edge e exist in current model, return exisit middle node
+       if      e not exist, create new node, update nodes,rev_nd,edge
+       '''
        
+       pos = self.edges.get(e,None)
+       dp = self.__dp
+       if pos == None:
+          # NOTE:establish new middle node, but check coincident node
+          n1 = e[0]
+          n2 = e[1]
+          xyz =[0.,0.,0.]
+          for i in range(3):
+              xyz[i] = (self.nodes[n1][i]+self.nodes[n2][i])/2.
+          key = (round(xyz[0],dp),round(xyz[1],dp),round(xyz[2],dp))
+          pos = self.rev_nd.get(key,self.__cur_avail_nd_id)
+          if pos == self.__cur_avail_nd_id:
+              # TODO update rev_nd 
+              self.nodes[pos] = tuple(xyz)
+              self.rev_nd[key]=pos
+              self.edges[e]=pos
+              self.__cur_avail_nd_id += 1
+       return pos
+
+   ###################################
+   # 
+   #    Mesh Operation
+   #
+   ###################################
 
 
+   def shift_mesh(self,vector):
+       for i in self.nodes:
+           xyz = np.array(self.nodes[i],dtype='float64')
+           xyz = np.array(vector,dtype='float64')+xyz
+           self.nodes[i]=tuple(xyz)
+
+   def mirror_mesh(self,kind=2,base=[0,0,0]):
+       """mirror_mesh(kind=2,base=[0,0,0])
+         kind=0,along yz plane
+         kind=1,along xz plane
+         kind=2,along xz plane
+       """
+       import copy
+       n = copy.deepcopy(self)
+       for i in n.nodes:
+           info = list(n.nodes[i])
+           info[kind] = 2*base[kind]-info[kind] 
+           n.nodes[i]=tuple(info)
+       for i in n.nrmls:
+           info = list(n.nrmls[i])
+           info[kind+1] =-info[kind+1] 
+           n.nrmls[i]=tuple(info)
+       n._rebuild_rev_info()
+       return n
+   
    def combine_mesh(m1,m2):
       '''
       n = m1.combine_mesh(m1,m2)
@@ -167,18 +239,18 @@ class _Mesh_core(object):
        n.devour_mesh(m1)
        add m1 to exisiting mesh n
       '''
-      dp = self._dp
+      dp = self.__dp
       renum_node ={}
       for i in new_mesh.nodes:
          xyz = new_mesh.nodes[i]
          key = (round(xyz[0],dp),round(xyz[1],dp),round(xyz[2],dp))
-         pos = self.rev_nd.get(key,self._cur_avail_nd_id)
+         pos = self.rev_nd.get(key,self.__cur_avail_nd_id)
          renum_node[i]=pos
-         if pos == self._cur_avail_nd_id:
+         if pos == self.__cur_avail_nd_id:
             # create new id, record in rev_nd
             self.nodes[pos] = xyz
             self.rev_nd[key] = pos
-            self._cur_avail_nd_id+=1
+            self.__cur_avail_nd_id+=1
       logging.debug(renum_node)
       renum_nrml={}
       for i in new_mesh.nrmls:
@@ -187,12 +259,12 @@ class _Mesh_core(object):
          nlist[0] = renum_node[nlist[0]]
          # logging.debug(nlist)
          key = tuple(nlist)
-         pos = self.rev_nm.get(key,self._cur_avail_nm_id)
+         pos = self.rev_nm.get(key,self.__cur_avail_nm_id)
          renum_nrml[i] = pos
-         if pos == self._cur_avail_nm_id:
+         if pos == self.__cur_avail_nm_id:
             self.nrmls[pos] = key
             self.rev_nm[key] = pos
-            self._cur_avail_nm_id+=1
+            self.__cur_avail_nm_id+=1
       # logging.debug(renum_nrml) 
       # NOTE:no element coincidence check
       for i in new_mesh.elems:
@@ -204,46 +276,14 @@ class _Mesh_core(object):
             nodelist[j] = renum_node[nodelist[j]]
             nrmlist[j] = renum_nrml[nrmlist[j]]
          # logging.debug(nrmlist)
-         self.elems[self._cur_avail_el_id] = (einfo[0],einfo[1],tuple(nodelist),tuple(nrmlist))
-         self._cur_avail_el_id+=1
+         self.elems[self.__cur_avail_el_id] = (einfo[0],einfo[1],tuple(nodelist),tuple(nrmlist))
+         self.__cur_avail_el_id+=1
             
          
-         
 
-
-
-   def output_as_tecplt(self,path):
-       pass
-
-               
-
-       
-
-
-   def _find_mid_point(self,e):
-       ''' 
-       if edge e exist in current model, return exisit middle node
-       if      e not exist, create new node, update nodes,rev_nd,edge
-       '''
-       
-       pos = self.edge_mdp.get(e,None)
-       dp = self._dp
-       if pos == None:
-          # NOTE:establish new middle node, but check coincident node
-          n1 = e[0]
-          n2 = e[1]
-          xyz =[0.,0.,0.]
-          for i in range(3):
-              xyz[i] = (self.nodes[n1][i]+self.nodes[n2][i])/2.
-          key = (round(xyz[0],dp),round(xyz[1],dp),round(xyz[2],dp))
-          pos = self.rev_nd.get(key,self._cur_avail_nd_id)
-          if pos == self._cur_avail_nd_id:
-              # TODO update rev_nd 
-              self.nodes[pos] = tuple(xyz)
-              self.rev_nd[key]=pos
-              self.edge_mdp[e]=pos
-              self._cur_avail_nd_id += 1
-       return pos
+   def __test(self):
+        print "i am here"
+        pass
 
 
 
@@ -252,8 +292,17 @@ class _Mesh_core(object):
     #                INPUT AND OUTPUT PART OF CLASS                   #
     #                                                                 #
     ###################################################################
-         
-   def _output_as_fs(self,path,kind=1):
+   def output_mesh(self,path,kind):
+       if kind == FILETYPE.BODY:
+           self.__output_as_bd(path)
+       if kind == FILETYPE.SURFACE_WO_DAMP:
+           self.__output_as_fs(path,0)
+       if kind == FILETYPE.SURFACE_W_DAMP:
+           self.__output_as_fs(path,2)
+       if kind == FILETYPE.SURFACE_AUTO_DAMP:
+           self.__output_as_fs(path,1)
+           
+   def __output_as_fs(self,path,kind=1):
        """
        _output_as_fs(path,kind=1)
        kind = 0, no damp info
@@ -261,8 +310,10 @@ class _Mesh_core(object):
        kind = 2, need damp info setup
        currently: only 8-node elem
        """
+       print "only 8-node elem has been implemented"
+       
        f_sf = open(path,"w")
-       f_sf.write('{0:<5d}'.format(self._cur_avail_el_id-1) + '{0:<5d}\n'.format(self._cur_avail_nd_id-1))
+       f_sf.write('{0:<5d}'.format(self.__cur_avail_el_id-1) + '{0:<5d}\n'.format(self.__cur_avail_nd_id-1))
        acc_sf_elem = 1
        for i_elem in self.elems:
             str1 = ''
@@ -287,7 +338,7 @@ class _Mesh_core(object):
             acc_sf_elem += 1
        f_sf.close()
 
-   def _output_as_bd(self,path):
+   def __output_as_bd(self,path):
        """
        _output_as_bd(path)
        output using body mesh format
@@ -332,13 +383,32 @@ class _Mesh_core(object):
     #                INPUT AND OUTPUT PART OF CLASS                   #
     #                                                                 #
     ###################################################################
+   def read_mesh(self,path,kind,vector=[0,0,0]):
+       '''
+           def read_mesh(self,path,kind,vector=[0,0,0])
+           
+           kind=0 for body
+           kind=1 for surface w/o damp info
+           kind=2 for surface w   damp info
+           kind=9 for external 4node data
+           vector apply to external only
 
-   def read_sf_file(self,path,flag_damp=True):
-       print "pls set flag_damp=True if has damp info"
+       '''
+       if kind == FILETYPE.BODY:
+           self.__read_body_fmt(path)
+       if kind == FILETYPE.SURFACE_WO_DAMP:
+           self.__read_surface_fmt(path,False)
+       if kind == FILETYPE.SURFACE_W_DAMP:
+           self.__read_surface_fmt(path,True)
+       if kind == FILETYPE.EXTERNAL:
+           self.__read_external(path,[0,0,0]) 
+
+
+   def __read_surface_fmt(self,path,flag_damp=True):
 
        with open(path,"r") as f:
           num_elem =[int(i) for i in f.readline().split()][0]
-          dp = self._dp
+          dp = self.__dp
           for i_elem in range(num_elem):
               tmp = f.readline().split()
               tmp1 = [float(i) for i in f.readline().split()]
@@ -353,26 +423,26 @@ class _Mesh_core(object):
                       pos = self.rev_nd[node]
                       nodelist.append(pos)
                   else:
-                      self.rev_nd[node] = self._cur_avail_nd_id#create new node in rev dict
-                      self.nodes[self._cur_avail_nd_id] = (tmp1[j],tmp2[j],0.0)#create new node in dict_fs_node
-                      nodelist.append(self._cur_avail_nd_id)
+                      self.rev_nd[node] = self.__cur_avail_nd_id#create new node in rev dict
+                      self.nodes[self.__cur_avail_nd_id] = (tmp1[j],tmp2[j],0.0)#create new node in dict_fs_node
+                      nodelist.append(self.__cur_avail_nd_id)
                       if flag_damp:
-                          self.damp_info[self._cur_avail_nd_id] = tmp3[j]
-                      self._cur_avail_nd_id+=1
-              self.elems[self._cur_avail_el_id] = ['free surface',8,tuple(nodelist),tuple(nodelist)]
-              self._cur_avail_el_id += 1
+                          self.damp_info[self.__cur_avail_nd_id] = tmp3[j]
+                      self.__cur_avail_nd_id+=1
+              self.elems[self.__cur_avail_el_id] = ['free surface',8,tuple(nodelist),tuple(nodelist)]
+              self.__cur_avail_el_id += 1
           for i_node in self.nodes:
-              key = (i_node,round(0.0,self._dp),round(0.0,self._dp),round(1.,self._dp))
-              self.nrmls[self._cur_avail_nm_id] = key 
-              self.rev_nm[key] = self._cur_avail_nm_id
-              self._cur_avail_nm_id+=1
+              key = (i_node,round(0.0,self.__dp),round(0.0,self.__dp),round(1.,self.__dp))
+              self.nrmls[self.__cur_avail_nm_id] = key 
+              self.rev_nm[key] = self.__cur_avail_nm_id
+              self.__cur_avail_nm_id+=1
               #TODO assign num of nrmls,elems,nodes,zone_list
             
 
 
-   def read_bd_file(self,path):
+   def __read_body_fmt(self,path):
         from numpy import cos,sin
-        dp = self._dp
+        dp = self.__dp
         f = open(path,'r')
         flag =[int(i) for i in f.readline().split()][0]
         #TODO  assign self. nsys
@@ -412,14 +482,14 @@ class _Mesh_core(object):
                     # node_waterline.append(pos)
 
             else:
-                self.rev_nd[key] = self._cur_avail_nd_id
-                renum_bd_node[int(tmp[0])] = self._cur_avail_nd_id         
-                self.nodes[self._cur_avail_nd_id] = (x,y,tmp[4])
+                self.rev_nd[key] = self.__cur_avail_nd_id
+                renum_bd_node[int(tmp[0])] = self.__cur_avail_nd_id         
+                self.nodes[self.__cur_avail_nd_id] = (x,y,tmp[4])
                 #####NOTE: get waterline node id list
                 # if (abs(tmp[4])<1e-4):
-                    # node_waterline.append(self._cur_avail_nd_id)
+                    # node_waterline.append(self.__cur_avail_nd_id)
                 #### finish water line node
-                self._cur_avail_nd_id+=1
+                self.__cur_avail_nd_id+=1
 
         # self._waterline = list(set(node_waterline))
 
@@ -450,13 +520,13 @@ class _Mesh_core(object):
             tmp = [int(i) for i in f.readline().split()]
             tmp1 = [int(i) for i in f.readline().split()]
             nodelist = []
-            renum_elem[tmp[0]]=self._cur_avail_el_id
+            renum_elem[tmp[0]]=self.__cur_avail_el_id
             ## update node number in nodelist
             for k in range(tmp[1]):
                 nodelist.append(renum_bd_node[tmp1[k]])
-            self.elems[self._cur_avail_el_id] = ['body',tmp[1],tuple(nodelist)]   
+            self.elems[self.__cur_avail_el_id] = ['body',tmp[1],tuple(nodelist)]   
             nodelist.append(nodelist[0])#for use(n,n+1) edge pair
-            self._cur_avail_el_id+=1
+            self.__cur_avail_el_id+=1
 
         #===============================================================
         tmp_elem_nrml={}# tmporialy save nrmlist info
@@ -481,26 +551,27 @@ class _Mesh_core(object):
                    anode = self.elems[ie][2][j] #associated node = jth node in node list 
                    cnrml = nrmlist[j]
                    pos = tmp_nrmls[cnrml]
-                   key = (anode,round(pos[0],self._dp),round(pos[1],self._dp),round(pos[2],self._dp))
+                   key = (anode,round(pos[0],self.__dp),round(pos[1],self.__dp),round(pos[2],self.__dp))
                    
-                   loc = self.rev_nm.get(key,self._cur_avail_nm_id)
+                   loc = self.rev_nm.get(key,self.__cur_avail_nm_id)
                    renum_nrml[cnrml] = loc# record id change
                    #FIXME NO there one to multiple case
                    nrmlist[j] = loc# update id in old nrmlist
                    processed_nrml.append(cnrml)
                    
-                   if loc == self._cur_avail_nm_id: 
-                      self.nrmls[self._cur_avail_nm_id]=key#record new nrml
-                      self.rev_nm[key] = self._cur_avail_nm_id#record new key
-                      self._cur_avail_nm_id+=1
+                   if loc == self.__cur_avail_nm_id: 
+                      self.nrmls[self.__cur_avail_nm_id]=key#record new nrml
+                      self.rev_nm[key] = self.__cur_avail_nm_id#record new key
+                      self.__cur_avail_nm_id+=1
                    else:
                       pass
             self.elems[ie].append(tuple(nrmlist))#append updated nrmlist
 
-   def read_added(self,path,vector,z_offset=0.,comment='add mesh'):
+   def __read_external(self,path,vector,z_offset=0.,tag='external'):
+       print "pls make sure edge info is ready,if you want to use old middle points"
       # vector is nrml vector,kind is elem kind('free','body',or user defined)
       
-       dp = self._dp
+       dp = self.__dp
        num_add_node = 12
        num_add_elem = 6
 
@@ -520,13 +591,13 @@ class _Mesh_core(object):
            y = tmp[2]
            z = tmp[3]+z_offset    
            key = (round(x,dp),round(y,dp),round(z,dp))
-           pos = self.rev_nd.get(key,self._cur_avail_nd_id)
+           pos = self.rev_nd.get(key,self.__cur_avail_nd_id)
            renum_add_node[int(tmp[0])] = pos         
            node_set.add(pos)
-           if pos == self._cur_avail_nd_id:
+           if pos == self.__cur_avail_nd_id:
                self.rev_nd[key] = pos
                self.nodes[pos] = (x,y,z)
-               self._cur_avail_nd_id+=1
+               self.__cur_avail_nd_id+=1
        logging.debug(renum_add_node)
        logging.debug(len(renum_add_node))
 
@@ -552,10 +623,10 @@ class _Mesh_core(object):
                # renum_add_node[midp]=midp#NOTE {not work with coincident node for input}this fixed nrml generation problem
            nodelist.pop(8)
            # logging.debug(nodelist)
-           # nrmlist = np.array(nodelist)+self._cur_avail_nm_id-1# nrmlist id shoud be offset according to current num of nrmls
-           renum_elem[tmp[0]]=self._cur_avail_el_id
-           self.elems[self._cur_avail_el_id] = [comment,8,tuple(nodelist)]#,tuple(nrmlist)]   
-           self._cur_avail_el_id+=1
+           # nrmlist = np.array(nodelist)+self.__cur_avail_nm_id-1# nrmlist id shoud be offset according to current num of nrmls
+           renum_elem[tmp[0]]=self.__cur_avail_el_id
+           self.elems[self.__cur_avail_el_id] = [tag,8,tuple(nodelist)]#,tuple(nrmlist)]   
+           self.__cur_avail_el_id+=1
            tmp = [int(i) for i in (f.readline().replace('elem','0')).split()]
            if len(tmp)==0:
                flag = False
@@ -564,11 +635,11 @@ class _Mesh_core(object):
        for i_node in node_set :
            key=(i_node,round(vector[0],dp),round(vector[1],dp),round(vector[2],dp))
            # NOTE didn't check coincident nrml
-           self.nrmls[self._cur_avail_nm_id] = key
-           self.rev_nm[key] = self._cur_avail_nm_id
-           node_2_nrml[i_node] = self._cur_avail_nm_id
+           self.nrmls[self.__cur_avail_nm_id] = key
+           self.rev_nm[key] = self.__cur_avail_nm_id
+           node_2_nrml[i_node] = self.__cur_avail_nm_id
 
-           self._cur_avail_nm_id+=1
+           self.__cur_avail_nm_id+=1
        # logging.debug(renum_elem)
        logging.debug(node_2_nrml)
        for i_elem in renum_elem:
