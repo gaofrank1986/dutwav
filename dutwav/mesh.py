@@ -1,7 +1,8 @@
 import logging
 import numpy as np
-from dutwav._mesh_core import *
-from dutwav._mesh_core import _Mesh_core
+from dutwav.__mesh_core import *
+from dutwav.__mesh_core import _Mesh_core
+from dutwav.draw import DrawMesh
 
 
 class Mesh(_Mesh_core):
@@ -10,6 +11,7 @@ class Mesh(_Mesh_core):
         # self._num_fs_elem = 0
         # self._num_bd_elem = 0
         self.damp_info={}
+        self.__rdrawObj=DrawMesh(self)
         # self._zonelist=[]
         # self._waterline=[]
         
@@ -107,8 +109,10 @@ class Mesh(_Mesh_core):
       """
       pass 
 
+   def draw_model(self,points=[]):
+       self.__rdrawObj.draw_model(points=points)
 
-
+   #===================================================
    def extract_mesh(self,criteria):
        """
         new_mesh = extract_mesh([taglist])

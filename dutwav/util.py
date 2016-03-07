@@ -97,3 +97,45 @@ def set_aspect_equal_3d(ax):
     ax.set_ylim3d([ymean - plot_radius, ymean + plot_radius])
     ax.set_zlim3d([zmean - plot_radius, zmean + plot_radius])
 
+
+def get_sufrace_potential(m,num,amp,omeg,depth,wk):
+    import numpy as np
+    g=9.801
+    res={}
+    for i in range(num):
+        x=m.nodes[i+1][0]
+        y=m.nodes[i+1][1]
+        z=m.nodes[i+1][2]
+        theta = np.arctan2(y,x)
+        r=np.sqrt(x**2+y**2)
+        phi=-1j*g*amp/omeg
+        phi=phi*np.cosh(wk*(z+depth))/np.cosh(wk*depth)
+        phi=phi*np.exp(1j*wk*r*np.cos(theta))
+        res[i+1]=phi
+    return res
+
+def get_ind_potential(mesh,num,amp,omeg,depth,wk): 
+    import numpy as np
+    from dutwav.analytical import bj
+    from scipy.special import jv
+    mesh.nodes[1]
+    g=9.801
+    res={}
+    for i in range(num):
+        x=mesh.nodes[i+1][0]
+        y=mesh.nodes[i+1][1]
+        z=mesh.nodes[i+1][2]
+        theta = np.arctan2(y,x)
+        r=np.sqrt(x**2+y**2)
+        tmp=0.
+        for m in range(10):
+            eps=2.
+            if m==0:
+                eps=1.
+            tp=-1j*g*amp/omeg
+            tp=tp*np.cosh(wk*(z+depth))/np.cosh(wk*depth)
+            tp=tp*eps*(1j)**m*bj(wk*r,m)*np.cos(m*theta)
+            # tp=tp*eps*(1j)**m*jv(m,wk*r)*np.cos(m*theta)
+            tmp+=tp
+        res[i+1]=tmp
+    return res

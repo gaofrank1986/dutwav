@@ -1,6 +1,6 @@
 import dutwav.mesh
 import logging
-from dutwav._mesh_core import POS
+from dutwav.__mesh_core import POS
 import numpy as np
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
@@ -20,13 +20,20 @@ class DrawMesh(object):
     def __init__(self,mesh):
         assert(isinstance(mesh,dutwav.mesh.Mesh))
         self.mesh = mesh
-        print "only reference created,not copy"
 
     # This class is for drawing mesh func.
 
 
+    def _draw_nrml(self,id,ax,scale):
+        nrm[0:3,i] = self.mesh.nrmls[id][1:4]
+        nrm[3:6,i] = self.mesh.nodes[self.mesh.nrmls[id][0]][0:3]
+        b = nrm[3:6,i]#base
+        e = nrm[0:3,i]*scale+b#end
+        a = Arrow3D([b[0],e[0]],[b[1],e[1]],[b[2],e[2]], mutation_scale=10, lw=1, arrowstyle="-|>", color="k")
+        ax.add_artist(a)
 
-    def _draw_element(self,id,ax,scale,with_arrow,c='red'):
+        
+    def _draw_element(self,id,ax,c='red'):
         this_elem = self.mesh.elems[id]
         loc = np.zeros((3,this_elem[POS.TYPE]+1),dtype='float')
         nrm = np.zeros((6,this_elem[POS.TYPE]),dtype='float')
@@ -34,16 +41,8 @@ class DrawMesh(object):
             loc[0:3,i] = self.mesh.nodes[this_elem[POS.NODLIST][i]][0:3]
             loc[:,-1] = loc[:,0] 
         ax.plot_wireframe(loc[0,:],loc[1,:],loc[2,:],rstride=5,cstride=5,color=c)
-        if (with_arrow):
-            for i in range(this_elem[POS.TYPE]):
-                logging.debug(this_elem[POS.NRMLIST][i])
-                nrm[0:3,i] = self.mesh.nrmls[this_elem[POS.NRMLIST][i]][1:4]
-                nrm[3:6,i] = self.mesh.nodes[self.mesh.nrmls[this_elem[POS.NRMLIST][i]][0]][0:3]
-                b = nrm[3:6,i]#base
-                e = nrm[0:3,i]*scale+b#end
-                a = Arrow3D([b[0],e[0]],[b[1],e[1]],[b[2],e[2]], mutation_scale=10, lw=1, arrowstyle="-|>", color="k")
-                ax.add_artist(a)
-
+           
+           
     def _draw_element_damp(self,id,ax,scale,c='red'):
         this_elem = self.mesh.elems[id]
         loc = np.zeros((3,this_elem[POS.TYPE]+1),dtype='float')
@@ -67,10 +66,12 @@ class DrawMesh(object):
         # ax.set_aspect("equal")
         for i in self.mesh.elems:
             if not d:
-                self._draw_element(i,ax,scale,with_arrow)
+                self._draw_element(i,ax)
             else:
-                self._draw_element_damp(i,ax,scale)
-        # plt.show()
+                self._draw_element_damp(i,ax)
+        if with_arrow:
+            for i in self.nrmls:
+                _draw_nrml(i,ax,scale)
         if len(points)!=0:
             loc=np.zeros((3,len(points)))
             p=0
@@ -83,7 +84,6 @@ class DrawMesh(object):
         set_aspect_equal_3d(ax)
         plt.show()
         
-        # return plt
     #==================================================================
     def export_tecplt_quad(self,path):
        with open(path,"wb") as f:

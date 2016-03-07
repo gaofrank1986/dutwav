@@ -1,4 +1,4 @@
-class freeterm_rslt(object):
+class FreeTerm(object):
     def __init__(self):
         self.result = {}
         # self.result2 ={}
@@ -57,6 +57,68 @@ class freeterm_rslt(object):
                 f.write(('{0:<5d}'.format(i)))
                 f.write('    '.join('{0:<12.8f}'.format(j) for j in self.result[key]))
                 f.write("\n")
+
+
+
+class AnalyticalPotential(object):
+    def __init__(self):
+        self.vec=None
+
+    def read_vector(self,path):
+        import numpy as np
+        with open(path,"rb") as f:
+            tmp = f.readlines()
+            vec = np.zeros((len(tmp),1),dtype = 'complex128')
+            for i in range(len(tmp)):
+                s = tmp[i]
+                # s = s.replace('(',' ')
+                # s = s.replace(')',' ')
+                # s2=[float(j) for j in s.split(',')]
+                s2=[float(j) for j in s.split()]
+                vec[i,0] = s2[1]+1j*s2[2]
+            self.vec=vec
+
+
+class BoundaryValue(object):
+    def __init__(self):
+        self.bc=None
+
+    def read_bc(self,path):
+        import numpy as np
+        with open(path,"rb") as f:
+            tmp = f.readlines()
+            vec = np.zeros((len(tmp),1),dtype = 'float64')
+            for i in range(len(tmp)):
+                vec[i,0] = float(tmp[i])
+            self.bc=vec
+
+class MatrixA(object):
+    def __init__(self):
+        self.A=None
+        self.n=0
+        self.err={}
+        self.derr={}
+    def read_matrix(self,path):
+        import numpy as np
+        self.A = np.loadtxt(path,dtype='float64')
+        n = int(np.sqrt(self.A.size))
+        self.A.resize(n,n)
+        self.n=n
+    def analysis_matrix(self,threshold):
+        import copy
+        self.err={}
+        self.derr={}
+        b = copy.copy(self.A)
+        while (b.max()) >threshold:
+            n1 = b.argmax()/self.n
+            n2 = b[n1,:].argmax()
+            key = (n1+1,n2+1)
+            if n1!=n2:
+                self.err[key]=b[n1,n2]
+            else:
+                self.derr[key]=b[n1,n2]
+            b[n1,n2]=0.
+
 
 
 
