@@ -1,3 +1,4 @@
+from numpy import sqrt
 class Wave(object):
     import numpy as np
     k = np.nan
@@ -23,7 +24,6 @@ class Wave(object):
         return _wav_num
 
     def read_data(self,path):
-        import math
         G = 9.807
 
         with open(path,"r") as f:
@@ -37,9 +37,9 @@ class Wave(object):
         if (data1[1] ==0):
             self.k = data2[2]
             if self.d < 0:
-                self.freq = math.sqrt(G*self.k)
+                self.freq = sqrt(G*self.k)
             else:
-                self.freq = math.sqrt(G*self.k*math.tanh(self.k*self.d))
+                self.freq = sqrt(G*self.k*tanh(self.k*self.d))
         else:
             self.wave_len = data2[2]
             self.k = compute_wav_num(self.freq,self.d)

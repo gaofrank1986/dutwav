@@ -1,8 +1,8 @@
 import logging
-import numpy as np
 from dutwav.__mesh_core import *
 from dutwav.__mesh_core import _Mesh_core
 from dutwav.draw import DrawMesh
+from numpy import sqrt,round
 
 
 class Mesh(_Mesh_core):
@@ -20,29 +20,52 @@ class Mesh(_Mesh_core):
         # self.ncn=None
 
         self._waterline={}
+   def test_dp(self):
+       print self.__cur_avail_nd_id
+       
+
+    
   
+   def _reverse_nrml(self):
+       for i in self.nrmls:
+           info=list(self.nrmls[i])
+           for j in [1,2,3]:
+               info[j] = -info[j]
+           self.nrmls[i]=tuple(info)
+           
    def _mark_surface_elems(self):
-       surface_node = set()
-       surface_elem = set()
+       self._mark_elems_at_z(0.0,'surface')
+
+   def _mark_elems_at_z(self,z,tag='marked'):
+       s_node = set()
+       s_elem = set()
        
        for i in self.nodes:
-           if(abs(self.nodes[i][2])<1e-5):
-               surface_node.add(i)
-
+           if(abs(self.nodes[i][2]-z)<1e-5):
+               s_node.add(i)
        for i in self.elems:
            nodelist = set(self.elems[i][POS.NODLIST]) 
-           if nodelist.issubset(surface_node):
-               surface_elem.add(i)
+           if nodelist.issubset(s_node):
+               s_elem.add(i)
+       for i in s_elem:
+           self.elems[i][0] = tag
+   
+   def _list_node_withr(self,rlow=0.,rhigh=1.):
+       surface_node=set()
+       for i in self.nodes:
+           r = sqrt((self.nodes[i][1])**2+(self.nodes[i][0])**2)
+           if(r<rhigh) and (r>rlow):
+               surface_node.add(i)
+       return(list(surface_node))   
        
-       for i in surface_elem:
-           self.elems[i][0] = "surface"
 
+           
    def _mark_elem_withr(self,rlow=0,rhigh=1,tag='marked'):
        surface_node = set()
        surface_elem = set()
        
        for i in self.nodes:
-           r = np.sqrt((self.nodes[i][1])**2+(self.nodes[i][0])**2)
+           r = sqrt((self.nodes[i][1])**2+(self.nodes[i][0])**2)
            if(r<rhigh) and (r>rlow):
                surface_node.add(i)
 
@@ -66,13 +89,16 @@ class Mesh(_Mesh_core):
            result[key] = result.get(key,0)+1
        return result 
            
+   #===================================================
+   #===================================================
+   
    def _generate_damp_info(self,f=None):
        surface_node = set()
        for i in self.nodes:
           if(abs(self.nodes[i][2])<1e-5):
              surface_node.add(i)
        for i in surface_node:
-          r = np.sqrt(self.nodes[i][0]**2+self.nodes[i][1]**2)
+          r = sqrt(self.nodes[i][0]**2+self.nodes[i][1]**2)
           if f:
             self.damp_info[i] = f(r)
           if not f:
@@ -88,7 +114,7 @@ class Mesh(_Mesh_core):
            info = self.elems[i]
            if info[0]=='body':
                nodelist = info[POS.NODLIST]
-               for j in range(info[POS.ELEMTYPE]):
+               for j in range(info[POS.TYPE]):
                    if self._is_node_fs(nodelist[j]):
                        nodes.add(nodelist[j])
        self._init_waterline(nodes)
@@ -96,11 +122,13 @@ class Mesh(_Mesh_core):
 
    def _init_waterline(self,wset):
        for i in wset:
-           key=np.round(list(self.nodes[i]),self.__dp)
+           #FIXME __dp cannot be accessed
+           key=round(list(self.nodes[i]),self.get_precision())
            self._waterline[tuple(key)] = None
 
-                    
 
+   #===================================================
+   #===================================================
 
    def test_mesh(self):
       """
@@ -109,9 +137,29 @@ class Mesh(_Mesh_core):
       """
       pass 
 
+   #===================================================
+   #===================================================
+
    def draw_model(self,points=[]):
        self.__rdrawObj.draw_model(points=points)
 
+   def tecplt_surface(self,path,value,soltime=1,kind =1):
+       if kind==2:
+           self.__rdrawObj.export_surface_tecplt_poly(path,value)
+       if kind==1:
+           self.__rdrawObj.export_surface_tecplt_quad(path,value,soltime)
+
+   def tecplt_nrml(self,path,kind =1):
+       if kind==2:
+           self.__rdrawObj.export_tecplt_quad(path)
+       if kind==1:
+           self.__rdrawObj.export_tecplt_poly(path)
+   
+       if kind==3:
+           self.__rdrawObj.tecplt_poly(path)
+
+
+   #===================================================
    #===================================================
    def extract_mesh(self,criteria):
        """
@@ -119,8 +167,7 @@ class Mesh(_Mesh_core):
         extract a new mesh from elements marked in taglist
        """
             
-       import dutwav.mesh as ms
-       n = ms.Mesh()
+       n = Mesh(self.get_precision())
        s_elem=set()
        s_node=set()
        s_nrml=set()
@@ -154,19 +201,9 @@ class Mesh(_Mesh_core):
               nodelist[j] = renum_node[nodelist[j]]
               nrmlist[j] = renum_nrml[nrmlist[j]]
            n.elems[i+1] = ['extract',info[1],tuple(nodelist),tuple(nrmlist)]
-       n.__cur_avail_el_id = len(s_elem)+1
-       n.__cur_avail_nd_id = len(s_node)+1
-       n.__cur_avail_nm_id = len(s_nrml)+1
-       # Rebuild rev_node,rev_rnml info
-       # for i in n.nodes:
-          # xyz = n.nodes[i]
-          # key = (round(xyz[0],n.__dp),round(xyz[1],n.__dp),round(xyz[2],n.__dp))
-          # n.rev_nd[key] = i
-       # for i in n.nrmls:
-          # info = n.nrmls[i]
-          # key = (info[0],round(info[1],n.__dp),round(info[2],n.__dp),round(info[3],n.__dp))
-          # n.rev_nm[key] = i
+       
        n._rebuild_rev_info()
+       n._recreate_avail_info()
        
        return n
 

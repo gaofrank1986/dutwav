@@ -75,27 +75,7 @@ def def_damp_func(r,alpha,L):
         return value
   return f
 
-def set_aspect_equal_3d(ax):
-    """Fix equal aspect bug for 3D plots."""
 
-    xlim = ax.get_xlim3d()
-    ylim = ax.get_ylim3d()
-    zlim = ax.get_zlim3d()
-
-    from numpy import mean
-    xmean = mean(xlim)
-    ymean = mean(ylim)
-    zmean = mean(zlim)
-
-    plot_radius = max([abs(lim - mean_)
-                       for lims, mean_ in ((xlim, xmean),
-                                           (ylim, ymean),
-                                           (zlim, zmean))
-                       for lim in lims])
-
-    ax.set_xlim3d([xmean - plot_radius, xmean + plot_radius])
-    ax.set_ylim3d([ymean - plot_radius, ymean + plot_radius])
-    ax.set_zlim3d([zmean - plot_radius, zmean + plot_radius])
 
 
 def get_sufrace_potential(m,num,amp,omeg,depth,wk):
@@ -139,3 +119,57 @@ def get_ind_potential(mesh,num,amp,omeg,depth,wk):
             tmp+=tp
         res[i+1]=tmp
     return res
+
+
+def parse_result(path):
+    with open(path,"rb") as f:
+        r = f.readlines()
+    r1={}
+    r2={}
+    r3={}
+    for i in range(len(r)):
+        tmp=[float(j) for j in r[i].split()]
+        r1[i+1]=tmp[0]
+        r2[i+1]=tmp[1]
+        r3[i+1]=tmp[1]-tmp[0]
+    return (r1,r2,r3) 
+
+def create_animation(path,mesh,ubound,prefix="./fort.7"):
+    import dutwav.mesh
+    assert(isinstance(mesh,dutwav.mesh.Mesh))
+    for i in range(ubound):
+        infilename=prefix+'{0:0>3d}'.format(i)
+        outfilename="./tecplt_animation_"+'{0:0>3d}'.format(i)+'.dat'
+        (r1,r2,r3)=parse_result(infilename)
+        mesh.tecplt_surface(outfilename,[r1,r2,r3],i)
+
+
+def output_ss(path,mesh,eid,nid):
+    with open(path,"wb") as f:
+        f.write(' 3      8      1      8    3.   8\n')
+        info = mesh.elems[eid][2]
+        j=0
+        for i in [1,3,5,7,2,4,6,8]:
+            j+=1 
+            str1='{0:<5d}'.format(j)
+            str1+=('    '.join('{0:<14.8f}'.format(i) for i in mesh.nodes[info[i-1]]))
+            if (info[i-1]==nid):
+                jth=i
+            str1+='\n'
+            f.write(str1)
+        f.write('1     1     2    3     4    5   6   7   8   -3\n')
+        str2=('    '.join('{0:<14.8f}'.format(i) for i in mesh.nodes[nid]))
+        str2+='\n'
+        f.write(str2)
+        if j==1: xi=[-1.,-1.]
+        if j==2: xi=[1.,-1.]
+        if j==3: xi=[1.,1.]
+        if j==4: xi=[-1.,1.]
+        if j==5: xi=[0.,-1.]
+        if j==6: xi=[1.,0.]
+        if j==7: xi=[0.,1.]
+        if j==8: xi=[-1.,0.]
+        f.write('{0:<14.8f}  {0:<14.8f}'.format(xi[0],xi[1]))
+        
+
+    pass

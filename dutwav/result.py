@@ -63,6 +63,7 @@ class FreeTerm(object):
 class AnalyticalPotential(object):
     def __init__(self):
         self.vec=None
+        self.eti=None
 
     def read_vector(self,path):
         import numpy as np
@@ -77,6 +78,17 @@ class AnalyticalPotential(object):
                 s2=[float(j) for j in s.split()]
                 vec[i,0] = s2[1]+1j*s2[2]
             self.vec=vec
+    def get_eti(self,omega):
+        # eti = iw/g * potential
+        self.eti = self.vec*1j*omega/9.807
+
+    def output(self,path):
+        import numpy as np
+        re= np.zeros((self.vec.shape[0],2),dtype='float64')
+        re[:,0]=self.vec.real[:,0]
+        re[:,1]=self.eti.real[:,0]
+        np.savetxt(path,re)
+
 
 
 class BoundaryValue(object):
@@ -118,6 +130,48 @@ class MatrixA(object):
             else:
                 self.derr[key]=b[n1,n2]
             b[n1,n2]=0.
+
+
+class ElemValue():
+    def __init__(self):
+        self.res={}
+
+    def read_result(self,path):
+        with open(path,"rb") as f:
+            acc=0
+            for line in f:
+                line = line.split()
+                acc+=1
+                value=[float(j) for j in line[3:]]
+                eid = int(line[1])
+                nid = int(line[0])
+                self.res[nid]=self.res.get(nid,{})
+                self.res[nid][eid]=self.res[nid].get(eid,{})
+                flag = int(line[2])
+                if acc==1:
+                    self.res[nid][eid]['amat']=value
+                if acc==2:
+                    self.res[nid][eid]['bmat']=value
+                if acc==3:
+                    self.res[nid][eid]['aval']=value
+                if acc==4:
+                    self.res[nid][eid]['bval']=value
+                    acc=0
+    def pp_print(self,nid,eid):
+        value = None
+        try:
+            value = self.res[nid][eid]
+        except:
+            print "Error Accessing, Check input number"
+        if value:
+            for i in value:
+                str1='{0:5d} {0:5d}    '.format(nid,eid)
+                str1+=i
+                str1+="   "
+                for j in range(8):
+                    str1 += "{0:14.8f}".format(value[i][j])
+                print str1
+
 
 
 

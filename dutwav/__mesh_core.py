@@ -1,6 +1,9 @@
 import logging
-import numpy as np
 from enum import Enum
+from copy import deepcopy
+from scipy.linalg import norm
+from numpy import cos,sin,deg2rad,array
+from numpy import round as npround
 
 
 class POS(Enum):
@@ -66,25 +69,22 @@ class Element(object):
 class _Mesh_core(object):
    def __init__(self,dp=4):
         self.nsys = 0
-        # self.nelem = 0
-        # self.nnode = 0
-        # self.nnrml = 0
         
-
         self.nodes = {}
         self.elems = {}
         self.rev_nd = {}
         self.rev_nm = {}
-        # self.rev_el={}
         self.nrmls ={}
         # self.coors = {}
         self.edges={}
-        # self.damp={}
         
         self.__cur_avail_nd_id=1
         self.__cur_avail_el_id=1
         self.__cur_avail_nm_id=1
-        self.__dp=4
+        self.__dp=dp
+
+   def get_precision(self):
+       return self.__dp
 
    def _is_exist_node(self,pos):
         assert(len(pos)==3)
@@ -106,7 +106,10 @@ class _Mesh_core(object):
    
 
    def _redo_bd_nrml(self):
-      import scipy.linalg as la
+      """
+            Create nrml for cylinder body (without bottom) ,pointing outward
+      """
+      print ("Create nrml for cylinder body (without bottom) ,pointing outward")
       flag = True
       for i in self.elems:
          if self.elems[i][0] != 'body':
@@ -117,25 +120,25 @@ class _Mesh_core(object):
       self.rev_nm={}
       for i in self.nrmls:
          info = self.nrmls[i]
-         xyz = np.array(self.nodes[info[0]],dtype='float64')
+         xyz = array(self.nodes[info[0]],dtype='float64')
          xyz[2] = 0.
-         nrml = xyz/la.norm(xyz)#normalize vector 
+         nrml = xyz/norm(xyz)#normalize vector 
          self.nrmls[i] = (info[0],nrml[0],nrml[1],nrml[2])
-         nrml = np.round(nrml,self.__dp)
+         nrml = npround(nrml,self.__dp)
          key = (info[0],nrml[0],nrml[1],nrml[2])
          self.rev_nm[key] = i
       return
 
    def _update_all_nrml(self,vector):
-      print "vecot will be auto normalized"
-      import scipy.linalg as la
+      print "vector will be auto normalized"
+      assert(len(vector)==3)
       self.rev_nm={}
       for i in self.nrmls:
          info = self.nrmls[i]
-         xyz = np.array(vector,dtype='float64')
-         nrml = xyz/la.norm(xyz)#normalize vector 
+         xyz = array(vector,dtype='float64')
+         nrml = xyz/norm(xyz)#normalize vector 
          self.nrmls[i] = (info[0],nrml[0],nrml[1],nrml[2])
-         nrml = np.round(nrml,self.__dp)
+         nrml = npround(nrml,self.__dp)
          key = (info[0],nrml[0],nrml[1],nrml[2])
          self.rev_nm[key] = i
   
@@ -150,6 +153,11 @@ class _Mesh_core(object):
           info = self.nrmls[i]
           key = (info[0],round(info[1],self.__dp),round(info[2],self.__dp),round(info[3],self.__dp))
           self.rev_nm[key] = i
+
+   def _recreate_avail_info(self):
+        self.__cur_avail_el_id = len(self.elems)+1
+        self.__cur_avail_nd_id = len(self.nodes)+1
+        self.__cur_avail_nm_id = len(self.nrmls)+1
 
   
    def get_edge_info(self):
@@ -200,10 +208,13 @@ class _Mesh_core(object):
 
 
    def shift_mesh(self,vector):
+       assert(len(vector)==3)
        for i in self.nodes:
-           xyz = np.array(self.nodes[i],dtype='float64')
-           xyz = np.array(vector,dtype='float64')+xyz
+           xyz = array(self.nodes[i],dtype='float64')
+           xyz = array(vector,dtype='float64')+xyz
            self.nodes[i]=tuple(xyz)
+       self._rebuild_rev_info()
+       #FIXME rebuild revnodes
 
    def mirror_mesh(self,kind=2,base=[0,0,0]):
        """mirror_mesh(kind=2,base=[0,0,0])
@@ -211,8 +222,7 @@ class _Mesh_core(object):
          kind=1,along xz plane
          kind=2,along xz plane
        """
-       import copy
-       n = copy.deepcopy(self)
+       n = deepcopy(self)
        for i in n.nodes:
            info = list(n.nodes[i])
            info[kind] = 2*base[kind]-info[kind] 
@@ -224,15 +234,14 @@ class _Mesh_core(object):
        n._rebuild_rev_info()
        return n
    
-   def combine_mesh(m1,m2):
-      '''
-      n = m1.combine_mesh(m1,m2)
-      combine m1,m2 and return the new mesh
-      '''
-      import copy
-      m3 = copy.deepcopy(m1)
-      m3.devour_mesh(m2)
-      return m3
+   # def combine_mesh(m1,m2):
+      # '''
+      # n = m1.combine_mesh(m1,m2)
+      # combine m1,m2 and return the new mesh
+      # '''
+      # m3 = deepcopy(m1)
+      # m3.devour_mesh(m2)
+      # return m3
 
    def devour_mesh(self, new_mesh):
       '''
@@ -269,8 +278,8 @@ class _Mesh_core(object):
       # NOTE:no element coincidence check
       for i in new_mesh.elems:
          einfo = new_mesh.elems[i]
-         nodelist = list(einfo[POS.NODELIST])
-         nrmlist = list(einfo[POS.NODLIST])
+         nodelist = list(einfo[POS.NODLIST])
+         nrmlist = list(einfo[POS.NRMLIST])
          # logging.debug(nrmlist)
          for j in range(einfo[POS.TYPE]):
             nodelist[j] = renum_node[nodelist[j]]
@@ -325,6 +334,8 @@ class _Mesh_core(object):
                     str1 += '{0:<9.6f}     '.format(self.nodes[nodelist[j]][0])
                     str2 += '{0:<9.6f}     '.format(self.nodes[nodelist[j]][1])
                     if kind==2:
+                        #NOTEME damp info is not defined in this class
+                        assert(hasattr(self,'damp_info'))
                         dval = self.damp_info.get(nodelist[j],0.)
                         str3 += '{0:<9.6f}     '.format(dval)
                     if kind==1:
@@ -366,13 +377,13 @@ class _Mesh_core(object):
        for i_elem in self.elems:
                f.write(('{0:<5d}   8\n').format(i_elem))
                #f.write(('{0:<5d}'.format(i_elem)))
-               f.write('    '.join(str(i) for i in self.elems[i_elem][POS_NODLIST]))
+               f.write('    '.join(str(i) for i in self.elems[i_elem][POS.NODLIST]))
                f.write("\n")
 
        for i_elem in self.elems:
                f.write(('{0:<5d}   8\n').format(i_elem))
                #f.write(('{0:<5d}'.format(i_elem)))
-               f.write('    '.join(str(i) for i in self.elems[i_elem][POS_NRMLIST]))
+               f.write('    '.join(str(i) for i in self.elems[i_elem][POS.NRMLIST]))
                f.write("\n")
 
        f.close()
@@ -436,16 +447,13 @@ class _Mesh_core(object):
               self.nrmls[self.__cur_avail_nm_id] = key 
               self.rev_nm[key] = self.__cur_avail_nm_id
               self.__cur_avail_nm_id+=1
-              #TODO assign num of nrmls,elems,nodes,zone_list
             
 
 
    def __read_body_fmt(self,path):
-        from numpy import cos,sin
         dp = self.__dp
         f = open(path,'r')
         flag =[int(i) for i in f.readline().split()][0]
-        #TODO  assign self. nsys
         # read number of elem,node,normal, axis
         tmp = [int(i) for i in f.readline().split()]
         num_bd_elem = tmp[0]
@@ -461,7 +469,6 @@ class _Mesh_core(object):
         ##--------coordinate info finished----------
 
         renum_bd_node = {}#key is newly assigned id, value is old id
-        # node_waterline = []
         for i_node in range(num_bd_node): 
             tmp = [float(i) for i in f.readline().split()]
             offset = dict_axis[int(tmp[1])][1]
@@ -470,28 +477,19 @@ class _Mesh_core(object):
                 x = tmp[2]+offset[0]
                 y = tmp[3]+offset[1]
             if(axis_type==1):
-                x = tmp[2]*cos(np.deg2rad(tmp[3]))+offset[0]
-                y = tmp[2]*sin(np.deg2rad(tmp[3]))+offset[1]
+                x = tmp[2]*cos(deg2rad(tmp[3]))+offset[0]
+                y = tmp[2]*sin(deg2rad(tmp[3]))+offset[1]
             key = (round(x,dp),round(y,dp),round(tmp[4],dp))
             
             if (key in self.rev_nd):
                 pos = self.rev_nd[key]
                 renum_bd_node[int(tmp[0])] = pos         
 
-                # if (abs(tmp[4])<1e-4):
-                    # node_waterline.append(pos)
-
             else:
                 self.rev_nd[key] = self.__cur_avail_nd_id
                 renum_bd_node[int(tmp[0])] = self.__cur_avail_nd_id         
                 self.nodes[self.__cur_avail_nd_id] = (x,y,tmp[4])
-                #####NOTE: get waterline node id list
-                # if (abs(tmp[4])<1e-4):
-                    # node_waterline.append(self.__cur_avail_nd_id)
-                #### finish water line node
                 self.__cur_avail_nd_id+=1
-
-        # self._waterline = list(set(node_waterline))
 
 
         ####-----------------------------------------
@@ -509,8 +507,8 @@ class _Mesh_core(object):
                 x = tmp[2]+offset[0]
                 y = tmp[3]+offset[1]
             if(axis_type==1):
-                x = tmp[2]*cos(np.deg2rad(tmp[3]))+offset[0]
-                y = tmp[2]*sin(np.deg2rad(tmp[3]))+offset[1]
+                x = tmp[2]*cos(deg2rad(tmp[3]))+offset[0]
+                y = tmp[2]*sin(deg2rad(tmp[3]))+offset[1]
             ######--------------------
             tmp_nrmls[int(tmp[0])] = (x,y,tmp[4])   
 
