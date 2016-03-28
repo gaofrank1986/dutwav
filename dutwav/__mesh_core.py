@@ -120,7 +120,8 @@ class _Mesh_core(object):
       self.rev_nm={}
       for i in self.nrmls:
          info = self.nrmls[i]
-         xyz = array(self.nodes[info[0]],dtype='float64')
+         # xyz = array(self.nodes[info[0]],dtype='float64')
+         xyz=self.nodes[info[0]]
          xyz[2] = 0.
          nrml = xyz/norm(xyz)#normalize vector 
          self.nrmls[i] = (info[0],nrml[0],nrml[1],nrml[2])
@@ -142,6 +143,11 @@ class _Mesh_core(object):
          key = (info[0],nrml[0],nrml[1],nrml[2])
          self.rev_nm[key] = i
   
+
+
+      
+
+
    def _rebuild_rev_info(self):
       self.rev_nd = {}
       self.rev_nm = {}
@@ -210,11 +216,21 @@ class _Mesh_core(object):
    def shift_mesh(self,vector):
        assert(len(vector)==3)
        for i in self.nodes:
-           xyz = array(self.nodes[i],dtype='float64')
-           xyz = array(vector,dtype='float64')+xyz
-           self.nodes[i]=tuple(xyz)
+           info=list(self.nodes[i])
+           for j in range(3):
+               info[j]+=vector[j]
+           self.nodes[i]=tuple(info)
        self._rebuild_rev_info()
        #FIXME rebuild revnodes
+
+   def scale_mesh(self,factor):
+       assert(factor>0)
+       for i in self.nodes:
+           info=list(self.nodes[i])
+           for j in range(3):
+               info[j]=info[j]*factor
+           self.nodes[i]=tuple(info) 
+       self._rebuild_rev_info
 
    def mirror_mesh(self,kind=2,base=[0,0,0]):
        """mirror_mesh(kind=2,base=[0,0,0])
@@ -322,7 +338,8 @@ class _Mesh_core(object):
        print "only 8-node elem has been implemented"
        
        f_sf = open(path,"w")
-       f_sf.write('{0:<5d}'.format(self.__cur_avail_el_id-1) + '{0:<5d}\n'.format(self.__cur_avail_nd_id-1))
+       f_sf.write('{0:<5d}'.format(self.__cur_avail_el_id-1) \
+               + '{0:<5d}\n'.format(self.__cur_avail_nd_id-1))
        acc_sf_elem = 1
        for i_elem in self.elems:
             str1 = ''
@@ -567,15 +584,16 @@ class _Mesh_core(object):
 
    def __read_external(self,path,vector,z_offset=0.,tag='external'):
        print "pls make sure edge info is ready,if you want to use old middle points"
+       assert(isinstance(vector,list))
+       assert(len(vector)==3)
       # vector is nrml vector,kind is elem kind('free','body',or user defined)
       
        dp = self.__dp
-       num_add_node = 12
-       num_add_elem = 6
+   #     num_add_node = 12
+       # num_add_elem = 6
 
        node_set=set()
       
-       assert(len(vector)==3)
        #TODO complete this, make sure edge_info is generated before read add
        f = open(path,"r")
        renum_add_node = {}
@@ -600,7 +618,7 @@ class _Mesh_core(object):
        logging.debug(len(renum_add_node))
 
        flag = True
-       tmp = [int(i) for i in tmp]
+       tmp = [int(i) for i in tmp]#first line for elem already read
        renum_elem={}
 
        # TODO throw duplicate elems
@@ -618,6 +636,7 @@ class _Mesh_core(object):
                midp = self._find_mid_point(edge)
                nodelist[2*e+1] = midp
                node_set.add(midp)
+
                # renum_add_node[midp]=midp#NOTE {not work with coincident node for input}this fixed nrml generation problem
            nodelist.pop(8)
            # logging.debug(nodelist)
@@ -628,6 +647,9 @@ class _Mesh_core(object):
            tmp = [int(i) for i in (f.readline().replace('elem','0')).split()]
            if len(tmp)==0:
                flag = False
+
+
+
        
        node_2_nrml={}
        for i_node in node_set :

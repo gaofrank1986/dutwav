@@ -1,3 +1,4 @@
+import numpy as np
 class FreeTerm(object):
     def __init__(self):
         self.result = {}
@@ -9,7 +10,6 @@ class FreeTerm(object):
         # self.info2={}
 
     def read_result(self,path,dp=4):
-        import numpy as np
         list1=[]
         list2=[]
         with open(path,"rb") as f:
@@ -66,7 +66,6 @@ class AnalyticalPotential(object):
         self.eti=None
 
     def read_vector(self,path):
-        import numpy as np
         with open(path,"rb") as f:
             tmp = f.readlines()
             vec = np.zeros((len(tmp),1),dtype = 'complex128')
@@ -83,7 +82,6 @@ class AnalyticalPotential(object):
         self.eti = self.vec*1j*omega/9.807
 
     def output(self,path):
-        import numpy as np
         re= np.zeros((self.vec.shape[0],2),dtype='float64')
         re[:,0]=self.vec.real[:,0]
         re[:,1]=self.eti.real[:,0]
@@ -96,7 +94,6 @@ class BoundaryValue(object):
         self.bc=None
 
     def read_bc(self,path):
-        import numpy as np
         with open(path,"rb") as f:
             tmp = f.readlines()
             vec = np.zeros((len(tmp),1),dtype = 'float64')
@@ -106,16 +103,24 @@ class BoundaryValue(object):
 
 class MatrixA(object):
     def __init__(self):
+        self.C=None
         self.A=None
         self.n=0
+        self.m=0
         self.err={}
         self.derr={}
     def read_matrix(self,path):
-        import numpy as np
         self.A = np.loadtxt(path,dtype='float64')
         n = int(np.sqrt(self.A.size))
         self.A.resize(n,n)
         self.n=n
+
+    def read_matrix_c(self,path):
+        self.C = np.loadtxt(path,dtype='float64')
+        m = int(self.C.size/self.n)
+        self.C.resize(self.n,m)
+        self.m=m
+
     def analysis_matrix(self,threshold):
         import copy
         self.err={}

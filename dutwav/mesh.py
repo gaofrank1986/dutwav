@@ -24,7 +24,20 @@ class Mesh(_Mesh_core):
        print self.__cur_avail_nd_id
        
 
-    
+   def _update_tag_nrml(self,taglist,vector):
+      assert(len(vector)==3)
+      nset=set()
+      for i in self.elems:
+          if self.elems[i][POS.TAG] in taglist:
+              info=self.elems[i][POS.NRMLIST]
+              for j in info:
+                  nset.add(j)
+              print nset    
+      for i in nset:
+          info = list(self.nrmls[i][0:1])+vector
+          print info
+          self.nrmls[i] = info 
+      self._rebuild_rev_info()   
   
    def _reverse_nrml(self):
        for i in self.nrmls:
@@ -35,6 +48,20 @@ class Mesh(_Mesh_core):
            
    def _mark_surface_elems(self):
        self._mark_elems_at_z(0.0,'surface')
+
+   def _mark_elems_at(self,pos,v,tag='marked'):
+       s_node = set()
+       s_elem = set()
+       
+       for i in self.nodes:
+           if(abs(self.nodes[i][pos]-v)<1e-5):
+               s_node.add(i)
+       for i in self.elems:
+           nodelist = set(self.elems[i][POS.NODLIST]) 
+           if nodelist.issubset(s_node):
+               s_elem.add(i)
+       for i in s_elem:
+           self.elems[i][0] = tag
 
    def _mark_elems_at_z(self,z,tag='marked'):
        s_node = set()
@@ -50,6 +77,7 @@ class Mesh(_Mesh_core):
        for i in s_elem:
            self.elems[i][0] = tag
    
+
    def _list_node_withr(self,rlow=0.,rhigh=1.):
        surface_node=set()
        for i in self.nodes:
@@ -61,14 +89,12 @@ class Mesh(_Mesh_core):
 
            
    def _mark_elem_withr(self,rlow=0,rhigh=1,tag='marked'):
-       surface_node = set()
+       surface_node = set(self._list_node_withr(rlow,rhigh))
        surface_elem = set()
-       
-       for i in self.nodes:
-           r = sqrt((self.nodes[i][1])**2+(self.nodes[i][0])**2)
-           if(r<rhigh) and (r>rlow):
-               surface_node.add(i)
-
+       # for i in self.nodes:
+           # r = sqrt((self.nodes[i][1])**2+(self.nodes[i][0])**2)
+           # if(r<rhigh) and (r>rlow):
+               # surface_node.add(i)
        for i in self.elems:
            nodelist = set(self.elems[i][POS.NODLIST]) 
            if nodelist.issubset(surface_node):
@@ -78,11 +104,14 @@ class Mesh(_Mesh_core):
            self.elems[i][0] = tag
 
    def _update_tag(self,tag_list,new_tag):
-      for i in self.elems:
-         if self.elems[i][0] in tag_list:
-            self.elems[i][0] = new_tag
+       assert(isinstance(tag_list,list))
+       assert(isinstance(new_tag,str))
+       for i in self.elems:
+           if self.elems[i][0] in tag_list:
+               self.elems[i][0] = new_tag
         
-   def _count_elem(self,tag=[]):
+
+   def _count_elem(self):
        result={}
        for i in self.elems:
            key = self.elems[i][0]
@@ -122,7 +151,6 @@ class Mesh(_Mesh_core):
 
    def _init_waterline(self,wset):
        for i in wset:
-           #FIXME __dp cannot be accessed
            key=round(list(self.nodes[i]),self.get_precision())
            self._waterline[tuple(key)] = None
 
@@ -130,10 +158,13 @@ class Mesh(_Mesh_core):
    #===================================================
    #===================================================
 
-   def test_mesh(self):
+   def validate_mesh(self):
       """
       first n node must be surface node
       first elems must be surface elems
+      check coincident nodes
+      check coincident nrmls
+      check coincident elems
       """
       pass 
 
@@ -166,7 +197,8 @@ class Mesh(_Mesh_core):
         new_mesh = extract_mesh([taglist])
         extract a new mesh from elements marked in taglist
        """
-            
+       assert(isinstance(criteria,list))
+       # super class private cannot be accessed directly
        n = Mesh(self.get_precision())
        s_elem=set()
        s_node=set()
@@ -177,7 +209,7 @@ class Mesh(_Mesh_core):
                s_elem.add(e)
                s_node=s_node.union(set(self.elems[e][POS.NODLIST]))
                s_nrml=s_nrml.union(set(self.elems[e][POS.NRMLIST]))
-       # 
+        
        s_node = sorted(list(s_node))
        renum_node = {}
        for i in range(len(s_node)):
@@ -201,10 +233,10 @@ class Mesh(_Mesh_core):
               nodelist[j] = renum_node[nodelist[j]]
               nrmlist[j] = renum_nrml[nrmlist[j]]
            n.elems[i+1] = ['extract',info[1],tuple(nodelist),tuple(nrmlist)]
-       
+
        n._rebuild_rev_info()
        n._recreate_avail_info()
-       
+
        return n
 
- 
+

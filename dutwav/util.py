@@ -143,7 +143,7 @@ def create_animation(path,mesh,ubound,prefix="./fort.7"):
         (r1,r2,r3)=parse_result(infilename)
         mesh.tecplt_surface(outfilename,[r1,r2,r3],i)
 
-
+# generate sippem kind of mesh for one element
 def output_ss(path,mesh,eid,nid):
     with open(path,"wb") as f:
         f.write(' 3      8      1      8    3.   8\n')
@@ -173,3 +173,13 @@ def output_ss(path,mesh,eid,nid):
         
 
     pass
+
+
+# parse c.err
+def parse_cerr(err):
+    p1=[]
+    p2=[]
+    for i in err:
+        p1.append(i[0])
+        p2.append(i[1])
+    return (p1,p2)

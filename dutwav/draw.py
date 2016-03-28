@@ -1,6 +1,6 @@
 import dutwav.mesh
 from dutwav.__mesh_core import POS
-from matplotlib.patches import FancyArrowPatch
+# from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 from mpl_toolkits.mplot3d import axes3d
 import matplotlib.pyplot as plt
@@ -27,16 +27,16 @@ def set_aspect_equal_3d(ax):
     ax.set_ylim3d([ymean - plot_radius, ymean + plot_radius])
     ax.set_zlim3d([zmean - plot_radius, zmean + plot_radius])
     
-class Arrow3D(FancyArrowPatch):
-    def __init__(self, xs, ys, zs, *args, **kwargs):
-        FancyArrowPatch.__init__(self, (0,0), (0,0), *args, **kwargs)
-        self._verts3d = xs, ys, zs
+# class Arrow3D(FancyArrowPatch):
+    # def __init__(self, xs, ys, zs, *args, **kwargs):
+        # FancyArrowPatch.__init__(self, (0,0), (0,0), *args, **kwargs)
+        # self._verts3d = xs, ys, zs
 
-    def draw(self, renderer):
-        xs3d, ys3d, zs3d = self._verts3d
-        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-        self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
-        FancyArrowPatch.draw(self, renderer)
+    # def draw(self, renderer):
+        # xs3d, ys3d, zs3d = self._verts3d
+        # xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+        # self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
+        # FancyArrowPatch.draw(self, renderer)
         
 class DrawMesh(object):
     def __init__(self,mesh):
@@ -51,8 +51,8 @@ class DrawMesh(object):
         nrm[3:6,i] = self.__rMeshObj.nodes[self.__rMeshObj.nrmls[id][0]][0:3]
         b = nrm[3:6,i]#base
         e = nrm[0:3,i]*scale+b#end
-        a = Arrow3D([b[0],e[0]],[b[1],e[1]],[b[2],e[2]], mutation_scale=10, lw=1, arrowstyle="-|>", color="k")
-        ax.add_artist(a)
+        # a = Arrow3D([b[0],e[0]],[b[1],e[1]],[b[2],e[2]], mutation_scale=10, lw=1, arrowstyle="-|>", color="k")
+        # ax.add_artist(a)
 
         
     def _draw_element(self,id,ax,c='red'):
@@ -235,15 +235,16 @@ class DrawMesh(object):
                    f.write('\n')
 
     def export_surface_tecplt_quad(self,path,value,soltime=1):
+
+       assert(isinstance(value,list))
        for i in value:
            assert(len(self.__rMeshObj.nodes)==len(i))
 
        with open(path,"wb") as f:
            num_pts = len(self.__rMeshObj.nodes)
            num_elms = len(self.__rMeshObj.elems)
-           assert(isinstance(value,list))
            str1=' TITLE = "3D Mesh Grid Data for Element Boundary"\n \
-                   VARIABLES = "X", "Y"'
+                   VARIABLES = "X", "Y","Z"'
            for i in range(len(value)):
                str1+=', "v'+str(i+1)+'"'
            f.write(str1)
@@ -254,14 +255,16 @@ class DrawMesh(object):
 
            for i in self.__rMeshObj.nodes:
                node = self.__rMeshObj.nodes[i]
-               f.write('   '.join('{0:<9.6f}'.format(j) for j in node[0:2]))
+               # output x,y,z
+               f.write('   '.join('{0:<9.6f}'.format(j) for j in node[0:3]))
+               # output value info
                for j in range(len(value)):
                    f.write('    ')
                    f.write('{0:<9.6f}'.format(value[j][i]))
                f.write("\n")
+            # output node connection list
            for i in self.__rMeshObj.elems:
                info = self.__rMeshObj.elems[i][POS.NODLIST]
-               # nlist = [info[0],info[2],info[4],info[6]] 
                nlist = list(info)[::2]
                f.write('   '.join('{0:<8d}'.format(j) for j in nlist))
                f.write("\n")
