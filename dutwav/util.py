@@ -1,3 +1,4 @@
+# @func: print node dictionary [ndic] to file at [filepath]
 def print_nodedic(filepath,ndic):
     f = open(filepath,"w")
     tmp =[]
@@ -10,6 +11,8 @@ def print_nodedic(filepath,ndic):
     f.writelines(tmp)
     f.close()
 
+# @func: print elem dict [ndict] at [filepath] with string prefix [line]
+# @param: [line] is prefix put at beginning
 def print_elemdic(filepath,ndic,line):
     f = open(filepath,"w")
     if (line[-1]!='\n'):
@@ -24,7 +27,8 @@ def print_elemdic(filepath,ndic,line):
     f.writelines(tmp)
     f.close()
 
-
+# @func: given element dict [edic] ,retrun node to element relationship
+# @descript: find out which elements is connected to a node 
 def get_node_linking(edic):
     node_elem_rela ={}
     for i in edic:
@@ -43,7 +47,7 @@ def get_node_linking(edic):
         node_elem_rela[i]['pos'] = tuple(node_elem_rela[i]['pos'])
     return node_elem_rela
 
-
+# @func: given nrml connected to a node 
 def get_nrml_on_node(edic):
     nelem = len(edic.keys())
     node_nrml_rela={}
@@ -61,6 +65,11 @@ def get_nrml_on_node(edic):
                 node_nrml_rela[nid].add(mid)
     return node_nrml_rela
 
+
+# @func: return a function define the damping zone characteristics using [r],[alpha],[L]
+# @param: [L] define the length of damping zone
+# @param: [r] define the beginning position 
+# @param: [alpha] is coefficient
 def def_damp_func(r,alpha,L):
   r = float(r)
   alpha = float(alpha)
@@ -77,7 +86,13 @@ def def_damp_func(r,alpha,L):
 
 
 
-
+# @func: give surface potential value using analytical solution
+# @param: [m] order of expansion
+# @param: [num]
+# @param: [amp] amplitude
+# @param: [omeg] frequency
+# @param: [depth] water depth
+# @param: [wk] wave number
 def get_sufrace_potential(m,num,amp,omeg,depth,wk):
     import numpy as np
     g=9.801
@@ -120,7 +135,9 @@ def get_ind_potential(mesh,num,amp,omeg,depth,wk):
         res[i+1]=tmp
     return res
 
-
+# @func: generate r1,r2,r3
+# @param: [path] = file path
+# @desrcipt: read r1,r2 from each line of file, calc r3, return (r1,r2,r3)
 def parse_result(path):
     with open(path,"rb") as f:
         r = f.readlines()
@@ -147,7 +164,7 @@ def create_animation(path,mesh,ubound,prefix="./fort.7"):
         (r1,r2,r3)=parse_result(infilename)
         mesh.tecplt_surface(outfilename,[r1,r2,r3],i)
 
-# generate sippem kind of mesh for one element
+# @func: generate sippem kind of mesh for one element
 def output_ss(path,mesh,eid,nid):
     with open(path,"wb") as f:
         f.write(' 3      8      1      8    3.   8\n')

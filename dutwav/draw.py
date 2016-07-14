@@ -104,6 +104,8 @@ class DrawMesh(object):
         plt.show()
         
     #==================================================================
+
+    # @func : export tecplot mesh using quad element
     def export_tecplt_quad(self,path):
        with open(path,"wb") as f:
            num_pts = len(self.__rMeshObj.nrmls)
@@ -127,6 +129,8 @@ class DrawMesh(object):
                f.write('   '.join('{0:<8d}'.format(j) for j in nlist))
                f.write("\n")
 
+
+    # @func : export tecplot mesh using polygon element
     def export_tecplt_poly(self,path):
        with open(path,"wb") as f:
            num_pts = len(self.__rMeshObj.nrmls)
@@ -162,8 +166,8 @@ class DrawMesh(object):
                n = self.__rMeshObj.elems[i][POS.TYPE]
                nlist = list(self.__rMeshObj.elems[i][POS.NRMLIST])
                nlist.append(nlist[0])
-               print nlist
-               print n
+               # print nlist
+               # print n
                for k in range(n):
                    # a = nlist[k]
                    # b = nlist[k+1]
@@ -190,6 +194,7 @@ class DrawMesh(object):
                    f.write('   '.join('{0:<d}'.format(j) for j in psl[i][k*500:(k+1)*500]))
                    f.write('\n')
 
+    # @func : export surface mesh using polygon,no time info,no nrml info
     def export_surface_tecplt_poly(self,path,value):
        with open(path,"wb") as f:
            num_pts = len(self.__rMeshObj.nodes)
@@ -234,6 +239,7 @@ class DrawMesh(object):
                    f.write('   '.join('{0:<d}'.format(j) for j in psl[i][k*500:(k+1)*500]))
                    f.write('\n')
 
+    # @func : export surface mesh using quad, also adding time info
     def export_surface_tecplt_quad(self,path,value,soltime=1):
 
        assert(isinstance(value,list))
@@ -273,7 +279,7 @@ class DrawMesh(object):
 
 
 
-
+    # @func: use polygon elem,have nrml info,no time info
     # plot tecplot, use node numbering
     def tecplt_poly(self,path):
        MAX_LINE_HOLD=500
