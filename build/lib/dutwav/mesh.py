@@ -187,7 +187,6 @@ class Mesh(_Mesh_core):
            self.__rdrawObj.export_tecplt_poly(path)
    
        if kind==3:
-           #use node numbering
            self.__rdrawObj.tecplt_poly(path)
 
 

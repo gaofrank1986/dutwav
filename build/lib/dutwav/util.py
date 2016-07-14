@@ -134,10 +134,6 @@ def parse_result(path):
         r3[i+1]=tmp[1]-tmp[0]
     return (r1,r2,r3) 
 
-# @param path : file path
-# @param mesh : mesh object
-# @param ubound : upper bounder of time counting from time 000
-# @param prefix : 
 def create_animation(path,mesh,ubound,prefix="./fort.7"):
     import dutwav.mesh
     assert(isinstance(mesh,dutwav.mesh.Mesh))
