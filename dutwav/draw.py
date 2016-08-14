@@ -106,7 +106,7 @@ class DrawMesh(object):
     #==================================================================
 
     # @func : export tecplot mesh using quad element
-    def export_tecplt_quad(self,path):
+    def tecplt_quad(self,path):
        with open(path,"wb") as f:
            num_pts = len(self.__rMeshObj.nrmls)
            num_elms = len(self.__rMeshObj.elems)
@@ -130,117 +130,9 @@ class DrawMesh(object):
                f.write("\n")
 
 
-    # @func : export tecplot mesh using polygon element
-    def export_tecplt_poly(self,path):
-       with open(path,"wb") as f:
-           num_pts = len(self.__rMeshObj.nrmls)
-           num_elem = len(self.__rMeshObj.elems)
-           f.write("""
-           TITLE = "3D Mesh Grid Data for Element Boundary"
-            VARIABLES = "X", "Y", "Z","DX","DY","DZ"
-                """)
-           f.write('ZONE T="Mesh", ZONETYPE=FEPOLYGON, NODES= {:6d}, ELEMENTS= {:6d}, Faces= {:6d}, NumConnectedBoundaryFaces=0,TotalNumBoundaryConnections=0\n'.format(num_pts,num_elem,8*num_elem))
-           # f.write('ZONE T="MESH" N=        {:d} ,E=         {:d} \
-                   # ,F=FEPOINT,ET=QUADRILATERAL\n'.format(num_pts,num_elms))
-           psl = []
-           for i in range(8): 
-               psl.append([])
-           for i in self.__rMeshObj.nrmls:
-               info = self.__rMeshObj.nrmls[i]
-               node = self.__rMeshObj.nodes[info[0]]
-               for j in [0,1,2]:
-                   psl[j].append(node[j])
-                   psl[j+3].append(info[j+1]) 
-
-           # print psl[0] 
-           for i in range(6):
-               max_len = len(psl[0])
-               cha = max_len/500 + 1
-               for k in range(cha):
-                   f.write('   '.join('{0:<7.4f}'.format(j) for j in psl[i][k*500:(k+1)*500]))
-                   f.write('\n')
-           # str3=''
-           # str2=''
-           
-           for i in self.__rMeshObj.elems.keys():
-               n = self.__rMeshObj.elems[i][POS.TYPE]
-               nlist = list(self.__rMeshObj.elems[i][POS.NRMLIST])
-               nlist.append(nlist[0])
-               # print nlist
-               # print n
-               for k in range(n):
-                   # a = nlist[k]
-                   # b = nlist[k+1]
-                   # print a,b 
-                   # f.write(' {0:<d} {0:<d}'.format(a,b))
-                   f.write(' '.join('{0:<d}'.format(j) for j in nlist[k:k+2]))
-                   f.write("\n")
-                   psl[6].append(i)
-                   psl[7].append(0)
-                   # str3+=' {0:<d}'.format(int(i))
-                   # str2+=' {0:<d}'.format(0)
-               # if i%6 ==0 :
-                   # str3+='\n'
-               # if i%10 ==0 :
-                   # str2+='\n'
-           # str3+='\n'
-           # str2+='\n'
-           # f.write(str3)
-           # f.write(str2)
-           for i in [6,7]:
-               max_len = len(psl[6])
-               cha = max_len/500 + 1
-               for k in range(cha):
-                   f.write('   '.join('{0:<d}'.format(j) for j in psl[i][k*500:(k+1)*500]))
-                   f.write('\n')
-
-    # @func : export surface mesh using polygon,no time info,no nrml info
-    def export_surface_tecplt_poly(self,path,value):
-       with open(path,"wb") as f:
-           num_pts = len(self.__rMeshObj.nodes)
-           num_elem = len(self.__rMeshObj.elems)
-           f.write("""
-           TITLE = "3D Mesh Grid Data for Element Boundary"
-            VARIABLES = "X", "Y", "Z","DX","DY","DZ"
-                """)
-           f.write('ZONE T="Mesh", ZONETYPE=FEPOLYGON, NODES= {:6d}, ELEMENTS= {:6d}, Faces= {:6d}, NumConnectedBoundaryFaces=0,TotalNumBoundaryConnections=0\n'.format(num_pts,num_elem,8*num_elem))
-           # f.write('ZONE T="MESH" N=        {:d} ,E=         {:d} \
-                   # ,F=FEPOINT,ET=QUADRILATERAL\n'.format(num_pts,num_elms))
-           psl = []
-           for i in range(8): 
-               psl.append([])
-           for i in self.__rMeshObj.nodes:
-               node = self.__rMeshObj.nodes[i]
-               for j in [0,1]:
-                   psl[j].append(node[j])
-               psl[2].append(value[i])
-
-           # psl[1..3]
-           for i in range(3):
-               max_len = len(psl[0])
-               cha = max_len/500 + 1
-               for k in range(cha):
-                   f.write('   '.join('{0:<7.4f}'.format(j) for j in psl[i][k*500:(k+1)*500]))
-                   f.write('\n')
-           
-           for i in self.__rMeshObj.elems.keys():
-               n = self.__rMeshObj.elems[i][POS.TYPE]
-               nlist = list(self.__rMeshObj.elems[i][POS.NODL:IST])
-               nlist.append(nlist[0])
-               for k in range(n):
-                   f.write(' '.join('{0:<d}'.format(j) for j in nlist[k:k+2]))
-                   f.write("\n")
-                   psl[6].append(i)
-                   psl[7].append(0)
-           for i in [6,7]:
-               max_len = len(psl[6])
-               cha = max_len/500 + 1
-               for k in range(cha):
-                   f.write('   '.join('{0:<d}'.format(j) for j in psl[i][k*500:(k+1)*500]))
-                   f.write('\n')
 
     # @func : export surface mesh using quad, also adding time info
-    def export_surface_tecplt_quad(self,path,value,soltime=1):
+    def tecplt_value_quad(self,path,value,soltime=1):
 
        assert(isinstance(value,list))
        for i in value:
@@ -281,7 +173,9 @@ class DrawMesh(object):
 
     # @func: use polygon elem,have nrml info,no time info
     # plot tecplot, use node numbering
-    def tecplt_poly(self,path):
+    def tecplt_poly_2(self,path):
+       print "Nodes Numbering Used"
+       print "No nrml info,No time output"
        MAX_LINE_HOLD=500
        with open(path,"wb") as f:
            num_pts = len(self.__rMeshObj.nodes)
@@ -324,3 +218,105 @@ class DrawMesh(object):
                for k in range(cha):
                    f.write('   '.join('{0:<d}'.format(j) for j in psl[i][k*MAX_LINE_HOLD:(k+1)*MAX_LINE_HOLD]))
                    f.write('\n')
+
+
+    # @func : export tecplot mesh using polygon element
+    # use nrml for numbering
+    def tecplt_poly_1(self,path):
+       print "nrml Numbering Used"
+       print "No time output"
+       with open(path,"wb") as f:
+           num_pts = len(self.__rMeshObj.nrmls)
+           num_elem = len(self.__rMeshObj.elems)
+           f.write("""
+           TITLE = "3D Mesh Grid Data for Element Boundary"
+            VARIABLES = "X", "Y", "Z","DX","DY","DZ"
+                """)
+           f.write('ZONE T="Mesh", ZONETYPE=FEPOLYGON, NODES= {:6d}, ELEMENTS= {:6d}, Faces= {:6d}, NumConnectedBoundaryFaces=0,TotalNumBoundaryConnections=0\n'.format(num_pts,num_elem,8*num_elem))
+
+           psl = []
+           for i in range(8): 
+               psl.append([])
+           #use nrml id for numbering
+           for i in self.__rMeshObj.nrmls:
+               info = self.__rMeshObj.nrmls[i]
+               node = self.__rMeshObj.nodes[info[0]]
+               for j in [0,1,2]:
+                   psl[j].append(node[j])
+                   psl[j+3].append(info[j+1]) 
+
+           # print psl[0] 
+           for i in range(6):
+               max_len = len(psl[0])
+               cha = max_len/500 + 1
+               for k in range(cha):
+                   f.write('   '.join('{0:<7.4f}'.format(j) for j in psl[i][k*500:(k+1)*500]))
+                   f.write('\n')
+
+           
+           for i in self.__rMeshObj.elems.keys():
+               n = self.__rMeshObj.elems[i][POS.TYPE]
+               nlist = list(self.__rMeshObj.elems[i][POS.NRMLIST])
+               #add first node
+               nlist.append(nlist[0])
+               for k in range(n):
+                   f.write(' '.join('{0:<d}'.format(j) for j in nlist[k:k+2]))
+                   f.write("\n")
+                   psl[6].append(i)
+                   psl[7].append(0)
+
+           for i in [6,7]:
+               max_len = len(psl[6])
+               cha = max_len/500 + 1
+               for k in range(cha):
+                   f.write('   '.join('{0:<d}'.format(j) for j in psl[i][k*500:(k+1)*500]))
+                   f.write('\n')
+
+    # @func : export surface mesh using polygon,no time info,no nrml info
+    def tecplt_value_poly(self,path,value):
+       print "Nodes Numbering Used"
+       print "No Nrml Ouput,No time output"
+       with open(path,"wb") as f:
+           num_pts = len(self.__rMeshObj.nodes)
+           num_elem = len(self.__rMeshObj.elems)
+           f.write("""
+           TITLE = "3D Mesh Grid Data for Element Boundary"
+            VARIABLES = "X", "Y", "Z","v1"
+                """)
+           f.write('ZONE T="Mesh", ZONETYPE=FEPOLYGON, NODES= {:6d}, ELEMENTS= {:6d}, Faces= {:6d}, NumConnectedBoundaryFaces=0,TotalNumBoundaryConnections=0\n'.format(num_pts,num_elem,8*num_elem))
+
+           psl = []
+           for i in range(8): 
+               psl.append([])
+
+           for i in self.__rMeshObj.nodes:
+               node = self.__rMeshObj.nodes[i]
+               for j in [0,1,2]:
+                   psl[j].append(node[j])
+               psl[3].append(value[0][i])
+
+           # psl[1..3]
+           for i in range(4):
+               max_len = len(psl[0])
+               cha = max_len/500 + 1
+               for k in range(cha):
+                   f.write('   '.join('{0:<7.4f}'.format(j) for j in psl[i][k*500:(k+1)*500]))
+                   f.write('\n')
+           
+           for i in self.__rMeshObj.elems.keys():
+               n = self.__rMeshObj.elems[i][POS.TYPE]
+               nlist = list(self.__rMeshObj.elems[i][POS.NODLIST])
+               nlist.append(nlist[0])
+               for k in range(n):
+                   f.write(' '.join('{0:<d}'.format(j) for j in nlist[k:k+2]))
+                   f.write("\n")
+                   psl[6].append(i)
+                   psl[7].append(0)
+           for i in [6,7]:
+               max_len = len(psl[6])
+               cha = max_len/500 + 1
+               for k in range(cha):
+                   f.write('   '.join('{0:<d}'.format(j) for j in psl[i][k*500:(k+1)*500]))
+                   f.write('\n')
+
+

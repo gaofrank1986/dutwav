@@ -2,7 +2,7 @@ import logging
 from enum import Enum
 from copy import deepcopy
 from scipy.linalg import norm
-from numpy import cos,sin,deg2rad,array
+from numpy import cos,sin,deg2rad,array,sqrt
 from numpy import round as npround
 
 
@@ -19,49 +19,49 @@ class FILETYPE(Enum):
     SURFACE_AUTO_DAMP=3
     EXTERNAL = 9
 
-class Node(object):
-    # __slots__={'pos','id'}
-    def __init__(self,id,pos):
-        self.pos= pos
-        self.id = id
-        self.connected_elem=[]
-        self.connected_edge=[]
-        self.associated_nrml=[]
-        self.coor = None
+# class Node(object):
+    # # __slots__={'pos','id'}
+    # def __init__(self,id,pos):
+        # self.pos= pos
+        # self.id = id
+        # self.connected_elem=[]
+        # self.connected_edge=[]
+        # self.associated_nrml=[]
+        # self.coor = None
     
-    def print_node(self):
-        pass
+    # def print_node(self):
+        # pass
 
-class Normal(object):
-    # __slots__={'pos','id'}
-    def __init__(self,id,pos):
-        self.pos= pos
-        self.id = id
-        self.associated_node=[]
+# class Normal(object):
+    # # __slots__={'pos','id'}
+    # def __init__(self,id,pos):
+        # self.pos= pos
+        # self.id = id
+        # self.associated_node=[]
     
-    def print_nrml(self):
-        pass
+    # def print_nrml(self):
+        # pass
 
-class Coordinate(object):
-    def __init__(self,id,ctype,offset):
-        self.id = id
-        self.type = ctype
-        self.offset = offset
+# class Coordinate(object):
+    # def __init__(self,id,ctype,offset):
+        # self.id = id
+        # self.type = ctype
+        # self.offset = offset
 
-    def print_coor():
-        pass
+    # def print_coor():
+        # pass
 
 # ====================================
-class Element(object):
-    # __slots__={'nl','nrl','etype','kind','id'}
-   def __init__(self,ename):
-      self.tag = tag
-      self.etype = -1#6 for triangle,8 for rectangular,4 for 4 node rect,3 for 3 node triangle
-      self.nl=[]
-      self.nrl=[]
+# class Element(object):
+    # # __slots__={'nl','nrl','etype','kind','id'}
+   # def __init__(self,ename):
+      # self.tag = tag
+      # self.etype = -1#6 for triangle,8 for rectangular,4 for 4 node rect,3 for 3 node triangle
+      # self.nl=[]
+      # self.nrl=[]
 
-   def print_elem(self,flag=0): # flag =0  for nodelist,flag=1 for nrml list
-        pass
+   # def print_elem(self,flag=0): # flag =0  for nodelist,flag=1 for nrml list
+        # pass
 
 
 #=============================================
@@ -98,7 +98,7 @@ class _Mesh_core(object):
 
    def _is_node_fs(self,n,z=0):
        xyz=self.nodes[n]
-       if abs(xyz[2]-z)<1e-4:
+       if abs(xyz[2]-z)<1e-7:
            return True
        return False
    
@@ -205,6 +205,26 @@ class _Mesh_core(object):
               self.edges[e]=pos
               self.__cur_avail_nd_id += 1
        return pos
+
+   def renew_circular_midpoint(self,ctr=[0.,0.]):
+
+       tol = 10e-7
+       for e in self.edges:
+           n1 = e[0]
+           n2 = e[1]
+           # get distance to center on same plane
+           r1 = sqrt(self.nodes[n1][0]**2+self.nodes[n1][1])
+           r2 = sqrt(self.nodes[n2][0]**2+self.nodes[n2][1])
+           if (abs(r1-r2)<tol):
+               n3=self._find_mid_point(e)               
+               # avoid blow up
+               if(self.nodes[n3][0]<10e-7):
+                   self.nodes[n3][0]=10e-7
+               theta = arctan(self.nodes[n3][1]/self.nodes[n3][0])
+               self.n3.nodes[0] = r1*cos(theta)
+               self.n3.nodes[1] = r1*sin(theta)
+
+
 
    ###################################
    # 
@@ -318,6 +338,14 @@ class _Mesh_core(object):
     #                                                                 #
     ###################################################################
    def output_mesh(self,path,kind):
+       """
+       output_mesh(path,kind)
+       kind = 0, no damp info
+       kind = 1, no damp info
+       kind = 2, damp info =0,mesh do not need to have damp info setup
+       kind = 3, need damp info setup
+       currently: only 8-node elem
+       """
        if kind == FILETYPE.BODY:
            self.__output_as_bd(path)
        if kind == FILETYPE.SURFACE_WO_DAMP:
@@ -358,7 +386,7 @@ class _Mesh_core(object):
                     if kind==1:
                         str3 += '{0:<9.6f}     '.format(0.)
 
-            f_sf.write(('{0:<5d}   8\n').format(acc_sf_elem))
+            f_sf.write(('{0:<6d}   8\n').format(acc_sf_elem))
             f_sf.write(str1+'\n')
             f_sf.write(str2+'\n')
             if kind:
@@ -380,25 +408,25 @@ class _Mesh_core(object):
        f.write("\n")
 
        for i_node in self.nodes:
-               f.write(('{0:<5d}'.format(i_node)))
+               f.write(('{0:<7d}'.format(i_node)))
                f.write('1     ')
                f.write('    '.join('{0:<9.4f}'.format(i) for i in self.nodes[i_node]))
                f.write("\n")
 
        for i_norm in self.nrmls:
-               f.write(('{0:<5d}'.format(i_norm)))
+               f.write(('{0:<7d}'.format(i_norm)))
                f.write('1     ')
                f.write('    '.join('{0:<9.4f}'.format(i) for i in self.nrmls[i_norm][1:4]))
                f.write("\n")
 
        for i_elem in self.elems:
-               f.write(('{0:<5d}   8\n').format(i_elem))
+               f.write(('{0:<7d}   8\n').format(i_elem))
                #f.write(('{0:<5d}'.format(i_elem)))
                f.write('    '.join(str(i) for i in self.elems[i_elem][POS.NODLIST]))
                f.write("\n")
 
        for i_elem in self.elems:
-               f.write(('{0:<5d}   8\n').format(i_elem))
+               f.write(('{0:<7d}   8\n').format(i_elem))
                #f.write(('{0:<5d}'.format(i_elem)))
                f.write('    '.join(str(i) for i in self.elems[i_elem][POS.NRMLIST]))
                f.write("\n")

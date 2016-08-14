@@ -86,7 +86,7 @@ def def_damp_func(r,alpha,L):
 
 
 
-# @func: give surface potential value using analytical solution
+# @func: give surface potential value using analytical solution for infinite depth
 # @param: [m] order of expansion
 # @param: [num]
 # @param: [amp] amplitude
@@ -110,6 +110,9 @@ def get_sufrace_potential(m,num,amp,omeg,depth,wk):
     return res
 
 def get_ind_potential(mesh,num,amp,omeg,depth,wk): 
+    '''
+       for cylinder in indefinite water ???
+    '''
     import numpy as np
     from dutwav.analytical import bj
     from scipy.special import jv
@@ -146,10 +149,24 @@ def parse_result(path):
     r3={}
     for i in range(len(r)):
         tmp=[float(j) for j in r[i].split()]
-        r1[i+1]=tmp[0]
-        r2[i+1]=tmp[1]
-        r3[i+1]=tmp[1]-tmp[0]
+        r1[i+1]=tmp[1]
+        r2[i+1]=tmp[2]
+        r3[i+1]=tmp[2]-tmp[1]
     return (r1,r2,r3) 
+
+def display_value(fi,fo,mesh):
+    import dutwav.mesh
+    assert(isinstance(mesh,dutwav.mesh.Mesh))
+    with open(fi,"rb") as f:
+        r = f.readlines()
+        r1={}
+        for i in range(len(r)):
+            tmp=[float(j) for j in r[i].split()]
+            #tmp[0] is node id
+            r1[i+1]=tmp[1]
+    # print len(r1),len(mesh.nodes)
+    mesh.tecplt_surface(fo,[r1],1,kind=2)  
+
 
 # @param path : file path
 # @param mesh : mesh object
@@ -160,7 +177,7 @@ def create_animation(path,mesh,ubound,prefix="./fort.7"):
     assert(isinstance(mesh,dutwav.mesh.Mesh))
     for i in range(ubound):
         infilename=prefix+'{0:0>3d}'.format(i)
-        outfilename="./tecplt_animation_"+'{0:0>3d}'.format(i)+'.dat'
+        outfilename="./tecplt_animation_"+'{0:0>4d}'.format(i)+'.dat'
         (r1,r2,r3)=parse_result(infilename)
         mesh.tecplt_surface(outfilename,[r1,r2,r3],i)
 

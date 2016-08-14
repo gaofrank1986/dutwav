@@ -158,6 +158,21 @@ class Mesh(_Mesh_core):
        self._init_waterline(nodes)
        return(nodes)                
 
+   def _get_btm_node(self,z=-1):
+       print "elements in mesh must have well-defined tag\n\
+               only 'body' elements will be looked into"
+       nodes=set()
+       for i in self.elems:
+           info = self.elems[i]
+           if info[0]=='body':
+               nodelist = info[POS.NODLIST]
+               for j in range(info[POS.TYPE]):
+                   xyz=self.nodes[nodelist[j]]
+                   if (abs(xyz[2]-z)<1e-5):
+                       nodes.add(nodelist[j])
+       return(nodes)                
+
+
    def _init_waterline(self,wset):
        for i in wset:
            key=round(list(self.nodes[i]),self.get_precision())
@@ -185,19 +200,20 @@ class Mesh(_Mesh_core):
 
    def tecplt_surface(self,path,value,soltime=1,kind =1):
        if kind==2:
-           self.__rdrawObj.export_surface_tecplt_poly(path,value)
+           self.__rdrawObj.tecplt_value_poly(path,value)
        if kind==1:
-           self.__rdrawObj.export_surface_tecplt_quad(path,value,soltime)
+           self.__rdrawObj.tecplt_value_quad(path,value,soltime)
 
    def tecplt_nrml(self,path,kind =1):
        if kind==2:
-           self.__rdrawObj.export_tecplt_quad(path)
+           self.__rdrawObj.tecplt_quad(path)
        if kind==1:
-           self.__rdrawObj.export_tecplt_poly(path)
-
+           self.__rdrawObj.tecplt_poly_1(path)
        if kind==3:
-           #use node numbering
-           self.__rdrawObj.tecplt_poly(path)
+           #use node numbering, no nrml output
+           self.__rdrawObj.tecplt_poly_2(path)
+
+
 
 
    #===================================================
