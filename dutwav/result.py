@@ -92,27 +92,58 @@ class AnalyticalPotential(object):
     def __init__(self):
         self.vec=None
         self.eti=None
+        self.waves={}
+        self.w=0.0
 
     def read_vector(self,path):
         with open(path,"rb") as f:
             tmp = f.readlines()
-            vec = np.zeros((len(tmp),1),dtype = 'complex128')
+            vec = np.zeros((len(tmp)),dtype = 'complex128')
             for i in range(len(tmp)):
                 s = tmp[i]
-                # s = s.replace('(',' ')
-                # s = s.replace(')',' ')
-                # s2=[float(j) for j in s.split(',')]
                 s2=[float(j) for j in s.split()]
-                vec[i,0] = s2[1]+1j*s2[2]
+                vec[i] = s2[1]+1j*s2[2]
             self.vec=vec
-    def get_eti(self,omega):
+    # def get_eti(self,omega):
+        # # eti = iw/g * potential
+        # self.eti = self.vec*1j*omega/9.807
+
+    def get_eti(self):
         # eti = iw/g * potential
-        self.eti = self.vec*1j*omega/9.807
+        self.eti = self.vec*1j*self.w/9.807
+
+    def generate_wave(self,m,maxT,deltaT,factor=1,prefix='wave'):
+        '''
+            generate_wave( m,maxT,deltaT)
+        '''
+        from numpy import exp,floor
+        from dutwav.vtk import ValuetoVTK
+        from dutwav.mesh import Mesh
+        assert(isinstance(m,Mesh))
+        assert(len(m.nodes)==len(self.vec))
+        #compute total iteration
+        niter=np.int(floor(maxT/deltaT))
+       #  print maxT,"maxT",deltaT,"deltaT"
+        # print niter," max iteration"
+        self.get_eti()
+        for i in range(niter):
+            value={}
+            t=i*deltaT
+            print exp(-1j*self.w*t)
+            for j in m.nodes:
+            # self.waves=self.eti*exp(-1j*self.w*t)
+                tmp = self.eti[j-1]*exp(-1j*self.w*t)
+                value[j]=tmp.real*factor
+                self.waves=value
+
+            name=prefix+'.'+ '{:0>7d}'.format(i)
+            ValuetoVTK(m,name,value)
+
 
     def output(self,path):
         re= np.zeros((self.vec.shape[0],2),dtype='float64')
-        re[:,0]=self.vec.real[:,0]
-        re[:,1]=self.eti.real[:,0]
+        re[:,0]=self.vec.real[:]
+        re[:,1]=self.eti.real[:]
         np.savetxt(path,re)
 
 

@@ -32,12 +32,38 @@ def display_value(fi,fo,mesh):
 # @param mesh : mesh object
 # @param ubound : upper bounder of time counting from time 000
 # @param prefix : 
-def create_animation(path,mesh,ubound,prefix="./fort.7"):
+def create_animation(mesh,prefix,postfix='.out',loc="./",kind=1):
     import dutwav.mesh
+    from os.path import isfile,isdir
+    from os import mkdir,rename
+    from shutil import rmtree
     assert(isinstance(mesh,dutwav.mesh.Mesh))
-    for i in range(ubound):
-        infilename=prefix+'{0:0>3d}'.format(i)
-        outfilename="./tecplt_animation_"+'{0:0>4d}'.format(i)+'.dat'
-        (r1,r2,r3)=parse_result(infilename)
-        mesh.tecplt_surface(outfilename,[r1,r2,r3],i)
+    fd=loc+prefix+'_anim'
+    fd2=loc+prefix
+    if(not(isdir(fd))):
+        mkdir(fd)
+    else:
+        rmtree(fd)
+        mkdir(fd)
+    if(not(isdir(fd2))): 
+        mkdir(fd2)
 
+    i=0
+    while(True):
+        if(kind==1):
+            infile=loc+prefix+'.'+'{0:0>7d}'.format(i)+postfix
+            mov_dest=loc+prefix+'/'+prefix+'.'+'{0:0>7d}'.format(i)+postfix
+        else:
+            infile=loc+prefix+'/'+prefix+'.'+'{0:0>7d}'.format(i)+postfix
+
+        if(not(isfile(infile))):
+            break
+        
+        print infile
+        outfile=fd+'/'+prefix+'.'+'{0:0>7d}'.format(i)+'.dat'
+        (r1,r2,r3)=parse_result(infile)
+        mesh.tecplt_surface(outfile,[r1,r2,r3],i)
+        # print mov_dest
+        if(kind==1):
+            rename(infile,mov_dest)
+        i=i+1

@@ -206,8 +206,10 @@ class Mesh(_Mesh_core):
 
    def tecplt_nrml(self,path,kind =1):
        if kind==2:
+           # quad, node numbering, has nrml info
            self.__rdrawObj.tecplt_quad(path)
        if kind==1:
+           #use nrml numbering, has nrml output
            self.__rdrawObj.tecplt_poly_1(path)
        if kind==3:
            #use node numbering, no nrml output

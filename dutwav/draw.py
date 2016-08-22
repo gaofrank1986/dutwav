@@ -111,7 +111,7 @@ class DrawMesh(object):
            num_pts = len(self.__rMeshObj.nrmls)
            num_elms = len(self.__rMeshObj.elems)
            f.write("""TITLE = "3D Mesh Grid Data for Element Boundary"\n\
-                    VARIABLES = "X", "Y", "Z","DX","DY","DZ" """)
+                   VARIABLES = "X", "Y", "Z","DX","DY","DZ" \n""")
            f.write('ZONE T="MESH" N=        {:d} ,E=         {:d} \
                    ,F=FEPOINT,ET=QUADRILATERAL\n'.format(num_pts,num_elms))
        
@@ -141,13 +141,14 @@ class DrawMesh(object):
        with open(path,"wb") as f:
            num_pts = len(self.__rMeshObj.nodes)
            num_elms = len(self.__rMeshObj.elems)
-           str1=' TITLE = "3D Mesh Grid Data for Element Boundary"\n \
-                   VARIABLES = "X", "Y","Z"'
+           str1='TITLE = "3D Mesh Grid Data for Element Boundary"\n'+ \
+                  'VARIABLES = "X", "Y","Z"'
            for i in range(len(value)):
                str1+=', "v'+str(i+1)+'"'
+           str1+='\n'
            f.write(str1)
-           f.write('ZONE T="MESH" N=        {:d} ,E=         {:d} \
-                   ,F=FEPOINT,ET=QUADRILATERAL\n'.format(num_pts,num_elms))
+           f.write('ZONE T="MESH" N=    {:d} ,E=     {:d}'.format(num_pts,num_elms) \
+                   +',F=FEPOINT,ET=QUADRILATERAL\n')
            f.write('SolutionTime={:d}\n'.format(soltime))
            f.write('StrandID={:d}\n'.format(1))
 
@@ -182,7 +183,7 @@ class DrawMesh(object):
            num_elem = len(self.__rMeshObj.elems)
            f.write("""
            TITLE = "3D Mesh Grid Data for Element Boundary"
-            VARIABLES = "X", "Y", "Z"
+            VARIABLES = "X", "Y", "Z"\n
                 """)
            f.write('ZONE T="Mesh", ZONETYPE=FEPOLYGON, NODES= {:6d}, ELEMENTS= {:6d}, Faces= {:6d}, NumConnectedBoundaryFaces=0,TotalNumBoundaryConnections=0\n'.format(num_pts,num_elem,8*num_elem))
            
@@ -230,7 +231,7 @@ class DrawMesh(object):
            num_elem = len(self.__rMeshObj.elems)
            f.write("""
            TITLE = "3D Mesh Grid Data for Element Boundary"
-            VARIABLES = "X", "Y", "Z","DX","DY","DZ"
+            VARIABLES = "X", "Y", "Z","DX","DY","DZ"\n
                 """)
            f.write('ZONE T="Mesh", ZONETYPE=FEPOLYGON, NODES= {:6d}, ELEMENTS= {:6d}, Faces= {:6d}, NumConnectedBoundaryFaces=0,TotalNumBoundaryConnections=0\n'.format(num_pts,num_elem,8*num_elem))
 
@@ -281,7 +282,7 @@ class DrawMesh(object):
            num_elem = len(self.__rMeshObj.elems)
            f.write("""
            TITLE = "3D Mesh Grid Data for Element Boundary"
-            VARIABLES = "X", "Y", "Z","v1"
+            VARIABLES = "X", "Y", "Z","v1"\n
                 """)
            f.write('ZONE T="Mesh", ZONETYPE=FEPOLYGON, NODES= {:6d}, ELEMENTS= {:6d}, Faces= {:6d}, NumConnectedBoundaryFaces=0,TotalNumBoundaryConnections=0\n'.format(num_pts,num_elem,8*num_elem))
 

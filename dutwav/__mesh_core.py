@@ -2,6 +2,7 @@ import logging
 from enum import Enum
 from copy import deepcopy
 from scipy.linalg import norm
+import numpy as np
 from numpy import cos,sin,deg2rad,array,sqrt
 from numpy import round as npround
 
@@ -121,7 +122,7 @@ class _Mesh_core(object):
       for i in self.nrmls:
          info = self.nrmls[i]
          # xyz = array(self.nodes[info[0]],dtype='float64')
-         xyz=self.nodes[info[0]]
+         xyz=np.array(self.nodes[info[0]])
          xyz[2] = 0.
          nrml = xyz/norm(xyz)#normalize vector 
          self.nrmls[i] = (info[0],nrml[0],nrml[1],nrml[2])
@@ -205,24 +206,42 @@ class _Mesh_core(object):
               self.edges[e]=pos
               self.__cur_avail_nd_id += 1
        return pos
+    
+   def horiz_r(self,nid):
+       from numpy import sqrt
+       n=self.nodes[nid]
+       r=sqrt(n[0]**2+n[1]**2)
+       return r
 
    def renew_circular_midpoint(self,ctr=[0.,0.]):
-
+       from math import acos
+       from numpy import sign
        tol = 10e-7
        for e in self.edges:
            n1 = e[0]
            n2 = e[1]
-           # get distance to center on same plane
-           r1 = sqrt(self.nodes[n1][0]**2+self.nodes[n1][1])
-           r2 = sqrt(self.nodes[n2][0]**2+self.nodes[n2][1])
-           if (abs(r1-r2)<tol):
-               n3=self._find_mid_point(e)               
-               # avoid blow up
-               if(self.nodes[n3][0]<10e-7):
-                   self.nodes[n3][0]=10e-7
-               theta = arctan(self.nodes[n3][1]/self.nodes[n3][0])
-               self.n3.nodes[0] = r1*cos(theta)
-               self.n3.nodes[1] = r1*sin(theta)
+           # print e,self.edges[e]
+           # print n1,n2
+           # # get distance to center on same plane
+           # print self.nodes[n1][0:3]
+           # print self.nodes[n2][0:3]
+           # print abs(self.nodes[n1][2]-self.nodes[n2][2])
+
+           if abs(self.nodes[n1][2]-self.nodes[n2][2]) < 1e-7:
+                r1 = self.horiz_r(n1)
+                r2 = self.horiz_r(n2)
+                # print "r1,r2",r1,r2
+                if (abs(r1-r2)<tol):
+                    n3=self._find_mid_point(e)               
+                    # print "r3",self.horiz_r(n3)
+                    r3= self.horiz_r(n3)
+                    info=list(self.nodes[n3])
+                    # print info
+                    theta = acos(info[0]/r3)
+                    info[0] = sign(info[0])*abs(r1*cos(theta))
+                    info[1] = sign(info[1])*abs(r1*sin(theta))
+                    self.nodes[n3]=tuple(info)
+                    # print "r3",self.horiz_r(n3)
 
 
 
@@ -252,23 +271,24 @@ class _Mesh_core(object):
            self.nodes[i]=tuple(info) 
        self._rebuild_rev_info
 
-   def mirror_mesh(self,kind=2,base=[0,0,0]):
-       """mirror_mesh(kind=2,base=[0,0,0])
-         kind=0,along yz plane
-         kind=1,along xz plane
-         kind=2,along xz plane
-       """
-       n = deepcopy(self)
-       for i in n.nodes:
-           info = list(n.nodes[i])
-           info[kind] = 2*base[kind]-info[kind] 
-           n.nodes[i]=tuple(info)
-       for i in n.nrmls:
-           info = list(n.nrmls[i])
-           info[kind+1] =-info[kind+1] 
-           n.nrmls[i]=tuple(info)
-       n._rebuild_rev_info()
-       return n
+   # def mirror_mesh(self,kind=2,base=[0,0,0]):
+   # TODO there is direction problem with this function
+       # """mirror_mesh(kind=2,base=[0,0,0])
+         # kind=0,along yz plane
+         # kind=1,along xz plane
+         # kind=2,along xz plane
+       # """
+       # n = deepcopy(self)
+       # for i in n.nodes:
+           # info = list(n.nodes[i])
+           # info[kind] = 2*base[kind]-info[kind] 
+           # n.nodes[i]=tuple(info)
+       # for i in n.nrmls:
+           # info = list(n.nrmls[i])
+           # info[kind+1] =-info[kind+1] 
+           # n.nrmls[i]=tuple(info)
+       # n._rebuild_rev_info()
+       # return n
    
    # def combine_mesh(m1,m2):
       # '''
@@ -340,7 +360,7 @@ class _Mesh_core(object):
    def output_mesh(self,path,kind):
        """
        output_mesh(path,kind)
-       kind = 0, no damp info
+       kind = 0, body mesh
        kind = 1, no damp info
        kind = 2, damp info =0,mesh do not need to have damp info setup
        kind = 3, need damp info setup

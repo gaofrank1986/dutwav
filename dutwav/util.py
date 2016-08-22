@@ -86,7 +86,7 @@ def def_damp_func(r,alpha,L):
 
 
 
-# @func: give surface potential value using analytical solution for infinite depth
+# @func: give surface potential value using analytical solution for finite depth
 # @param: [m] order of expansion
 # @param: [num]
 # @param: [amp] amplitude

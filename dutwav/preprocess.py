@@ -17,6 +17,8 @@ def def_damp_func(r,alpha,L):
   return f
 
 # @func: generate sippem kind of mesh for one element
+# @var : [nid] is node number for source point
+# @var : [eid] element id for target elem
 def output_ss(path,mesh,eid,nid):
     with open(path,"wb") as f:
         f.write(' 3      8      1      8    3.   8\n')
@@ -44,5 +46,3 @@ def output_ss(path,mesh,eid,nid):
         if j==8: xi=[-1.,0.]
         f.write('{0:<14.8f}  {0:<14.8f}'.format(xi[0],xi[1]))
         
-
-    pass

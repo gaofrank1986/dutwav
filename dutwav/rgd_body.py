@@ -1,4 +1,4 @@
-class Mass(object):
+class Rigid_Body(object):
     """
       class for store mass information
     """
