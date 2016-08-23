@@ -64,7 +64,37 @@ class DrawMesh(object):
             loc[:,-1] = loc[:,0] 
         ax.plot_wireframe(loc[0,:],loc[1,:],loc[2,:],rstride=5,cstride=5,color=c)
            
-           
+    def draw_lines(self,pi=[],s=10,points=[]):
+
+        fig = plt.figure()
+        ax = fig.gca(projection='3d')
+        for i in range(len(pi)-1):
+            n1=pi[i]
+            n2=pi[i+1]
+            print n1,n2
+            self._draw_line(n1,n2,ax,s=s)
+        if len(points)!=0:
+            loc=zeros((3,len(points)))
+            p=0
+            for i in points:
+                loc[0,p] = self.__rMeshObj.nodes[i][0]
+                loc[1,p] = self.__rMeshObj.nodes[i][1]
+                loc[2,p] = self.__rMeshObj.nodes[i][2]
+                p+=1
+            ax.scatter(loc[0,:],loc[1,:],loc[2,:],color="g",s=s*5)
+
+        set_aspect_equal_3d(ax)
+        plt.show()
+
+    def _draw_line(self,n1,n2,ax,c='red',s=10):
+        info1 = list(self.__rMeshObj.nodes[n1])
+        info2 = list(self.__rMeshObj.nodes[n2])
+        loc = zeros((3,2),dtype='float')
+        loc[0:3,0] = info1[0:3]
+        loc[0:3,1] = info2[0:3]
+        ax.plot_wireframe(loc[0,:],loc[1,:],loc[2,:],rstride=5,cstride=5,color=c)          
+        ax.scatter(loc[0,:],loc[1,:],loc[2,:],color="g",s=s)
+
     # def _draw_element_damp(self,id,ax,scale,c='red'):
         # this_elem = self.__rMeshObj.elems[id]
         # loc = zeros((3,this_elem[POS.TYPE]+1),dtype='float')
@@ -123,9 +153,12 @@ class DrawMesh(object):
                f.write('   '.join('{0:<9.6f}'.format(j) for j in info[1:4]))
                f.write("\n")
            for i in self.__rMeshObj.elems:
-               info = self.__rMeshObj.elems[i][POS.NRMLIST]
+               n = self.__rMeshObj.elems[i][POS.TYPE]
+               info = list(self.__rMeshObj.elems[i][POS.NRMLIST])
                # nlist = [info[0],info[2],info[4],info[6]] 
-               nlist = list(info)[::2]
+               nlist = info[::2]
+               if(n==6):
+                   nlist=[info[0],info[1],info[2],info[0]]
                f.write('   '.join('{0:<8d}'.format(j) for j in nlist))
                f.write("\n")
 
@@ -163,8 +196,11 @@ class DrawMesh(object):
                f.write("\n")
             # output node connection list
            for i in self.__rMeshObj.elems:
-               info = self.__rMeshObj.elems[i][POS.NODLIST]
-               nlist = list(info)[::2]
+               info = list(self.__rMeshObj.elems[i][POS.NODLIST])
+               typ = self.__rMeshObj.elems[i][POS.TYPE]
+               nlist = info[::2]
+               if (typ==6):
+                   nlist=[info[0],info[1],info[2],info[0]]
                f.write('   '.join('{0:<8d}'.format(j) for j in nlist))
                f.write("\n")
 
@@ -224,6 +260,7 @@ class DrawMesh(object):
     # @func : export tecplot mesh using polygon element
     # use nrml for numbering
     def tecplt_poly_1(self,path):
+       print "poly_1"
        print "nrml Numbering Used"
        print "No time output"
        with open(path,"wb") as f:
@@ -321,3 +358,123 @@ class DrawMesh(object):
                    f.write('\n')
 
 
+
+
+ # @func : export tecplot mesh using polygon element
+    # use nrml for numbering
+    def tecplt_poly_3(self,path):
+       print "poly_3"
+       print "nrml Numbering Used"
+       print "No time output"
+       from copy import copy
+       with open(path,"wb") as f:
+           num_pts = len(self.__rMeshObj.nrmls)
+           num_elem = len(self.__rMeshObj.elems)
+
+
+           bodystr=''
+           psl = []
+           for i in range(8): 
+               psl.append([])
+           #use nrml id for numbering
+           for i in self.__rMeshObj.nrmls:
+               info = self.__rMeshObj.nrmls[i]
+               node = self.__rMeshObj.nodes[info[0]]
+               for j in [0,1,2]:
+                   psl[j].append(node[j])
+                   psl[j+3].append(info[j+1]) 
+
+           # print psl[0] 
+           for i in range(6):
+               max_len = len(psl[0])
+               cha = max_len/500 + 1
+               for k in range(cha):
+                   bodystr += ('   '.join('{0:<7.4f}'.format(j) for j in psl[i][k*500:(k+1)*500]))
+                   bodystr +=('\n')
+
+           
+           for i in self.__rMeshObj.elems.keys():
+               n = self.__rMeshObj.elems[i][POS.TYPE]
+               nlist = list(self.__rMeshObj.elems[i][POS.NRMLIST])
+               if(n==6):
+                   print nlist
+                   tmp=copy(nlist)
+                   nlist[2-1]=tmp[4-1]
+                   nlist[3-1]=tmp[2-1]
+                   nlist[4-1]=tmp[5-1]
+                   nlist[5-1]=tmp[3-1]
+
+                    
+               #add first node
+               nlist.append(nlist[0])
+               for k in range(n):
+                   bodystr+=(' '.join('{0:<d}'.format(j) for j in nlist[k:k+2]))
+                   bodystr+=("\n")
+                   psl[6].append(i)
+                   psl[7].append(0)
+
+           for i in [6,7]:
+               max_len = len(psl[6])
+               cha = max_len/500 + 1
+               for k in range(cha):
+                   bodystr+=('   '.join('{0:<d}'.format(j) for j in psl[i][k*500:(k+1)*500]))
+                   bodystr+=('\n')
+
+           f.write("""
+           TITLE = "3D Mesh Grid Data for Element Boundary"
+            VARIABLES = "X", "Y", "Z","DX","DY","DZ"\n
+                """)
+           f.write('ZONE T="Mesh", ZONETYPE=FEPOLYGON, NODES= {:6d}, ELEMENTS= {:6d}, Faces= {:6d}, NumConnectedBoundaryFaces=0,TotalNumBoundaryConnections=0\n'.format(num_pts,num_elem,len(psl[6])))
+           f.write(bodystr)
+
+
+               # @func : export surface mesh using polygon,no time info,no nrml info
+    def tecplt_value_poly_2(self,path,value):
+       print "Nodes Numbering Used"
+       print "No Nrml Ouput,No time output"
+       with open(path,"wb") as f:
+           num_pts = len(self.__rMeshObj.nodes)
+           num_elem = len(self.__rMeshObj.elems)
+           ss=''
+
+           psl = []
+           for i in range(8): 
+               psl.append([])
+
+           for i in self.__rMeshObj.nodes:
+               node = self.__rMeshObj.nodes[i]
+               for j in [0,1,2]:
+                   psl[j].append(node[j])
+               psl[3].append(value[0][i])
+
+           # psl[1..3]
+           for i in range(4):
+               max_len = len(psl[0])
+               cha = max_len/500 + 1
+               for k in range(cha):
+                   ss+=('   '.join('{0:<7.4f}'.format(j) for j in psl[i][k*500:(k+1)*500]))
+                   ss+=('\n')
+           
+           for i in self.__rMeshObj.elems.keys():
+               n = self.__rMeshObj.elems[i][POS.TYPE]
+               nlist = list(self.__rMeshObj.elems[i][POS.NODLIST])
+               nlist.append(nlist[0])
+               for k in range(n):
+                   ss+=(' '.join('{0:<d}'.format(j) for j in nlist[k:k+2]))
+                   ss+=("\n")
+                   psl[6].append(i)
+                   psl[7].append(0)
+           for i in [6,7]:
+               max_len = len(psl[6])
+               cha = max_len/500 + 1
+               for k in range(cha):
+                   ss+=('   '.join('{0:<d}'.format(j) for j in psl[i][k*500:(k+1)*500]))
+                   ss+=('\n')
+
+           f.write("""
+           TITLE = "3D Mesh Grid Data for Element Boundary"
+            VARIABLES = "X", "Y", "Z","v1"\n
+                """)
+           f.write('ZONE T="Mesh", ZONETYPE=FEPOLYGON, NODES= {:6d}, ELEMENTS= {:6d}, Faces= {:6d}, NumConnectedBoundaryFaces=0,TotalNumBoundaryConnections=0\n'.format(num_pts,num_elem,len(psl[6])))
+
+           f.write(ss)

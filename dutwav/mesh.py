@@ -198,11 +198,16 @@ class Mesh(_Mesh_core):
    def draw_model(self,points=[]):
        self.__rdrawObj.draw_model(points=points)
 
-   def tecplt_surface(self,path,value,soltime=1,kind =1):
-       if kind==2:
-           self.__rdrawObj.tecplt_value_poly(path,value)
+   def draw_lines(self,p=[],points=[]):
+       self.__rdrawObj.draw_lines(p,points=points)
+
+   def tecplt_value(self,path,value,soltime=1,kind =1):
+       # if kind==2:
+           # self.__rdrawObj.tecplt_value_poly(path,value)
        if kind==1:
            self.__rdrawObj.tecplt_value_quad(path,value,soltime)
+       if kind==2:
+           self.__rdrawObj.tecplt_value_poly_2(path,value)
 
    def tecplt_nrml(self,path,kind =1):
        if kind==2:
@@ -210,11 +215,13 @@ class Mesh(_Mesh_core):
            self.__rdrawObj.tecplt_quad(path)
        if kind==1:
            #use nrml numbering, has nrml output
-           self.__rdrawObj.tecplt_poly_1(path)
+           self.__rdrawObj.tecplt_poly_3(path)
        if kind==3:
            #use node numbering, no nrml output
            self.__rdrawObj.tecplt_poly_2(path)
-
+#        if kind==4:
+           # #use node numbering, no nrml output
+           # self.__rdrawObj.tecplt_poly_3(path)
 
 
 
