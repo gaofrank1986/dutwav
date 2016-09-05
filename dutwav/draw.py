@@ -397,7 +397,6 @@ class DrawMesh(object):
                n = self.__rMeshObj.elems[i][POS.TYPE]
                nlist = list(self.__rMeshObj.elems[i][POS.NRMLIST])
                if(n==6):
-                   print nlist
                    tmp=copy(nlist)
                    nlist[2-1]=tmp[4-1]
                    nlist[3-1]=tmp[2-1]
@@ -458,6 +457,12 @@ class DrawMesh(object):
            for i in self.__rMeshObj.elems.keys():
                n = self.__rMeshObj.elems[i][POS.TYPE]
                nlist = list(self.__rMeshObj.elems[i][POS.NODLIST])
+               if(n==6):
+                   tmp=copy(nlist)
+                   nlist[2-1]=tmp[4-1]
+                   nlist[3-1]=tmp[2-1]
+                   nlist[4-1]=tmp[5-1]
+                   nlist[5-1]=tmp[3-1]
                nlist.append(nlist[0])
                for k in range(n):
                    ss+=(' '.join('{0:<d}'.format(j) for j in nlist[k:k+2]))

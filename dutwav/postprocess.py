@@ -62,8 +62,23 @@ def create_animation(mesh,prefix,postfix='.out',loc="./",kind=1):
         print infile
         outfile=fd+'/'+prefix+'.'+'{0:0>7d}'.format(i)+'.dat'
         (r1,r2,r3)=parse_result(infile)
-        mesh.tecplt_surface(outfile,[r1,r2,r3],i)
+        mesh.tecplt_value(outfile,[r1,r2,r3],i)
         # print mov_dest
         if(kind==1):
             rename(infile,mov_dest)
         i=i+1
+
+
+# @param path : file path
+# @param mesh : mesh object
+# @param ubound : upper bounder of time counting from time 000
+# @param prefix : 
+def create_animation_old(path,mesh,ubound,prefix="./fort.7"):
+    import dutwav.mesh
+    assert(isinstance(mesh,dutwav.mesh.Mesh))
+    for i in range(ubound):
+        infilename=prefix+'{0:0>3d}'.format(i)
+        outfilename="./tecplt_animation_"+'{0:0>4d}'.format(i)+'.dat'
+        (r1,r2,r3)=parse_result(infilename)
+        mesh.tecplt_value(outfilename,[r1,r2,r3],i)
+

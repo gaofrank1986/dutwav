@@ -1,6 +1,7 @@
 from dutwav.mesh import Mesh
 from pyvtk import *
 from dutwav.__mesh_core import POS
+from copy import copy
 def MeshtoVTK(m,path):
     assert(isinstance(m,Mesh))
     points=[]
@@ -9,7 +10,14 @@ def MeshtoVTK(m,path):
         info = m.nodes[i]
         points.append(list(info))
     for i in m.elems.keys():
+        n = m.elems[i][POS.TYPE]
         nlist = list(m.elems[i][POS.NODLIST])
+        if(n==6):
+            tmp=copy(nlist)
+            nlist[2-1]=tmp[4-1]
+            nlist[3-1]=tmp[2-1]
+            nlist[4-1]=tmp[5-1]
+            nlist[5-1]=tmp[3-1]       
         for j in range(len(nlist)):
             nlist[j]=nlist[j]-1
         polygons.append(nlist)
@@ -35,7 +43,14 @@ def ValuetoVTK(m,name,value):
         points.append(info)
 
     for i in m.elems.keys():
+        n = m.elems[i][POS.TYPE]
         nlist = list(m.elems[i][POS.NODLIST])
+        if(n==6):
+            tmp=copy(nlist)
+            nlist[2-1]=tmp[4-1]
+            nlist[3-1]=tmp[2-1]
+            nlist[4-1]=tmp[5-1]
+            nlist[5-1]=tmp[3-1]    
         for j in range(len(nlist)):
             nlist[j]=nlist[j]-1
         polygons.append(nlist)
