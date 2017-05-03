@@ -1,5 +1,8 @@
 # @func: print node dictionary [ndic] to file at [filepath]
 def print_nodedic(filepath,ndic):
+    '''
+        given a node dict,output at given loc
+    '''
     f = open(filepath,"w")
     tmp =[]
     for i in ndic:
@@ -14,6 +17,9 @@ def print_nodedic(filepath,ndic):
 # @func: print elem dict [ndict] at [filepath] with string prefix [line]
 # @param: [line] is prefix put at beginning
 def print_elemdic(filepath,ndic,line):
+    '''
+        given a elem dict, output a given loc
+    '''
     f = open(filepath,"w")
     if (line[-1]!='\n'):
         line+='\n'

@@ -104,15 +104,16 @@ class _Mesh_core(object):
    def _is_exist_node(self,pos):
        '''
        '''
-        assert(len(pos)==3)
-        key = (round(pos[0],self.__dp),round(pos[1],self.__dp),round(pos[2],self.__dp))
-        return(key in self.rev_nd)
+       assert(len(pos)==3)
+       key = (round(pos[0],self.__dp),round(pos[1],self.__dp),round(pos[2],self.__dp))
+       return(key in self.rev_nd)
 
    def _is_exist_nrml(self,node_id,pos):
        assert(len(pos)==3)
        key = (node_id,round(pos[0],self.__dp),round(pos[1],self.__dp),round(pos[2],self.__dp))
        return(key in self.rev_nd)
 
+   #see if node is on free surface
    def _is_node_fs(self,n,z=0):
        xyz=self.nodes[n]
        if abs(xyz[2]-z)<1e-7:
@@ -173,6 +174,7 @@ class _Mesh_core(object):
 
    def _rebuild_rev_info(self):
       '''
+        assumption: no coincident nodes
         reintialized rev_nd,rev_nm and generate corresponding info based current nodes,nrmls
       '''
       self.rev_nd = {}
@@ -193,6 +195,89 @@ class _Mesh_core(object):
         self.__cur_avail_el_id = len(self.elems)+1
         self.__cur_avail_nd_id = len(self.nodes)+1
         self.__cur_avail_nm_id = len(self.nrmls)+1
+
+
+   def _rm_unused_node(self):
+        '''
+        remove unused node from the model
+        '''
+        c1 = set()
+        l1 =list()
+        for i in self.elems:
+            tmp = self.elems[i][POS.NODLIST]
+            c1.update(tmp)
+        for i in self.nodes:
+            if not(i in c1):
+                l1.append(i)
+        for i in l1:
+            self.nodes.pop(i)
+
+   def _rm_unused_nrml(self):
+        '''
+        remove unused nrml from the model
+        '''
+        c1 = set()
+        l1 =list()
+        for i in self.elems:
+            tmp = self.elems[i][POS.NRMLIST]
+            c1.update(tmp)
+
+        for i in self.nrmls:
+            if not(i in c1):
+                l1.append(i)
+        for i in l1:
+            self.nrmls.pop(i)
+
+   def _renum_model(self):
+        self._rm_unused_node()
+        self._rm_unused_nrml()
+        # print 'nodes=',len(self.nodes)
+        # print 'nrmls=',len(self.nrmls)
+        new_nodes={}
+        new_nrmls={}
+        re_node={}
+        re_nrml={}
+        ids=1
+        ### Assume no coincident nodes/nrmls
+        for i in self.nodes:
+            new_nodes[ids] = self.nodes[i]
+            re_node[i]=ids  
+            ids+=1
+        
+        ids=1
+        # print re_node
+        for i in self.nrmls:
+            info=list(self.nrmls[i])
+            info[0]=re_node[info[0]]
+            new_nrmls[ids] = tuple(info)
+            re_nrml[i]=ids  
+            ids+=1
+
+        self.nodes=new_nodes
+        self.nrmls=new_nrmls
+
+        for i in self.elems:
+            info = self.elems[i]
+            nlist=info[POS.NODLIST]
+            nrmlist=info[POS.NRMLIST] 
+            tmp1=list()
+            tmp2=list()
+            for j in range(info[POS.TYPE]):
+                tmp1.append(re_node[nlist[j]])
+                tmp2.append(re_nrml[nrmlist[j]])
+            self.elems[i]=[info[0],info[1],tuple(tmp1),tuple(tmp2)]
+
+        self._rebuild_rev_info()
+        self._recreate_avail_info()
+
+                
+
+
+
+
+   def check_coincident_nodes(p=False):
+
+        pass
 
   
    def get_edge_info(self):
@@ -242,12 +327,20 @@ class _Mesh_core(object):
        return pos
     
    def horiz_r(self,nid):
+       '''
+       calculate radius
+       --------------
+       nid: node id
+       '''
        from numpy import sqrt
        n=self.nodes[nid]
        r=sqrt(n[0]**2+n[1]**2)
        return r
 
    def renew_circular_midpoint(self,ctr=[0.,0.]):
+       '''
+        regenerate midpoints for circular edge if initally set straight
+       '''
        from math import acos
        from numpy import sign
        tol = 10e-7
@@ -276,6 +369,9 @@ class _Mesh_core(object):
 
 
    def shift_mesh(self,vector):
+       '''
+       Mesh translation
+       '''
        assert(len(vector)==3)
        for i in self.nodes:
            info=list(self.nodes[i])
@@ -286,6 +382,9 @@ class _Mesh_core(object):
        #FIXME rebuild revnodes
 
    def scale_mesh(self,factor):
+       '''
+       Mesh scale
+       '''
        assert(factor>0)
        for i in self.nodes:
            info=list(self.nodes[i])
@@ -364,7 +463,7 @@ class _Mesh_core(object):
             nodelist[j] = renum_node[nodelist[j]]
             nrmlist[j] = renum_nrml[nrmlist[j]]
          # logging.debug(nrmlist)
-         self.elems[self.__cur_avail_el_id] = (einfo[0],einfo[1],tuple(nodelist),tuple(nrmlist))
+         self.elems[self.__cur_avail_el_id] = [einfo[0],einfo[1],tuple(nodelist),tuple(nrmlist)]
          self.__cur_avail_el_id+=1
             
          

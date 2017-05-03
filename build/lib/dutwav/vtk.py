@@ -3,6 +3,11 @@ from pyvtk import *
 from dutwav.__mesh_core import POS
 from copy import copy
 def MeshtoVTK(m,path):
+    '''
+        draw the mesh in vtk format
+        ---------------------
+        Note: triangle support added
+    '''
     assert(isinstance(m,Mesh))
     points=[]
     polygons=[]
@@ -33,6 +38,12 @@ def MeshtoVTK(m,path):
     vtk.tofile(path,'ascii')
 
 def ValuetoVTK(m,name,value):
+    '''
+        draw the given value on the mesh in vtk format
+        -------------------------
+        Note: value should be a dict 
+        Note: value is used to replace z 
+    '''
     assert(isinstance(value,dict))
     points=[]
     polygons=[]
@@ -66,6 +77,9 @@ def waveVtk(m,path,fi):
         m: mesh
         path : output vtk name
         fi: input value file
+        ----------------------
+        Note : used as a extension for ValuetoVTK
+        Note : second column in fi is used for output
     """
     assert(isinstance(m,Mesh))
     # assert(len(m.nodes)==len(value))
