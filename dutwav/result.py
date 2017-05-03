@@ -109,7 +109,7 @@ class AnalyticalPotential(object):
         # self.eti = self.vec*1j*omega/9.807
 
     def get_eti(self):
-        # eti = iw/g * potential
+        # eti = iw/g *phi
         self.eti = self.vec*1j*self.w/9.807
 
     def generate_wave(self,m,maxT,deltaT,factor=1,prefix='wave'):

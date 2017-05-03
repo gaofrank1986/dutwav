@@ -66,11 +66,22 @@ class FILETYPE(Enum):
 
 
 #=============================================
+'''
+    define the most basic data strucutre for mesh object
+    Mesh---------
+    nsys   : symmetric info /currently not used
+    nodes  : [dict] contains tuple (x,y,z)
+    nodes  : [dict] contains tuple (base,x,y,z)
+    elems  : [dict] tuple('type',node_count,[nodelist],[nrmlist])
+    rev_nd : [dict] given key (x,y,z) rounded for __dp, return node id
+    rev_nm : refer to above
+    edges  : [dict] tuple (node id 1,node id 2) 1 is smaller than 2,ordered 
+'''
 
 class _Mesh_core(object):
    def __init__(self,dp=4):
         self.nsys = 0
-        
+
         self.nodes = {}
         self.elems = {}
         self.rev_nd = {}
@@ -78,16 +89,21 @@ class _Mesh_core(object):
         self.nrmls ={}
         # self.coors = {}
         self.edges={}
-        
+
         self.__cur_avail_nd_id=1
         self.__cur_avail_el_id=1
         self.__cur_avail_nm_id=1
         self.__dp=dp
 
    def get_precision(self):
+       '''
+          __dp is used for rounding up, used in rev_nm,rev_nd
+       '''
        return self.__dp
 
    def _is_exist_node(self,pos):
+       '''
+       '''
         assert(len(pos)==3)
         key = (round(pos[0],self.__dp),round(pos[1],self.__dp),round(pos[2],self.__dp))
         return(key in self.rev_nd)
@@ -109,6 +125,9 @@ class _Mesh_core(object):
    def _redo_bd_nrml(self):
       """
             Create nrml for cylinder body (without bottom) ,pointing outward
+            -----------------------
+            Note: only check those element with 'body' tag
+            Note: all elements should be taged 'body'
       """
       print ("Create nrml for cylinder body (without bottom) ,pointing outward")
       flag = True
@@ -132,6 +151,9 @@ class _Mesh_core(object):
       return
 
    def _update_all_nrml(self,vector):
+      '''
+          update all nrmls with given vector
+      '''
       print "vector will be auto normalized"
       assert(len(vector)==3)
       self.rev_nm={}
@@ -150,6 +172,9 @@ class _Mesh_core(object):
 
 
    def _rebuild_rev_info(self):
+      '''
+        reintialized rev_nd,rev_nm and generate corresponding info based current nodes,nrmls
+      '''
       self.rev_nd = {}
       self.rev_nm = {}
       for i in self.nodes:
@@ -162,14 +187,20 @@ class _Mesh_core(object):
           self.rev_nm[key] = i
 
    def _recreate_avail_info(self):
+        '''
+           recalcuate __cur_avail info for node/norml/element using current elems/nodes/nrmls
+        '''
         self.__cur_avail_el_id = len(self.elems)+1
         self.__cur_avail_nd_id = len(self.nodes)+1
         self.__cur_avail_nm_id = len(self.nrmls)+1
 
   
    def get_edge_info(self):
+      '''
+        generate edge information using current elem
+      '''
       self.edges = {}
-      self._edge_info = True
+      # self._edge_info = True
       for i in self.elems:
          elem_info = self.elems.get(i,None)
          logging.debug("process elem",i)
@@ -186,6 +217,9 @@ class _Mesh_core(object):
        ''' 
        if edge e exist in current model, return exisit middle node
        if      e not exist, create new node, update nodes,rev_nd,edge
+       ------------------
+       return value is ----1) exisiting node id
+                           2) new generated node id
        '''
        
        pos = self.edges.get(e,None)
@@ -220,28 +254,17 @@ class _Mesh_core(object):
        for e in self.edges:
            n1 = e[0]
            n2 = e[1]
-           # print e,self.edges[e]
-           # print n1,n2
-           # # get distance to center on same plane
-           # print self.nodes[n1][0:3]
-           # print self.nodes[n2][0:3]
-           # print abs(self.nodes[n1][2]-self.nodes[n2][2])
-
            if abs(self.nodes[n1][2]-self.nodes[n2][2]) < 1e-7:
                 r1 = self.horiz_r(n1)
                 r2 = self.horiz_r(n2)
-                # print "r1,r2",r1,r2
                 if (abs(r1-r2)<tol):
                     n3=self._find_mid_point(e)               
-                    # print "r3",self.horiz_r(n3)
                     r3= self.horiz_r(n3)
                     info=list(self.nodes[n3])
-                    # print info
                     theta = acos(info[0]/r3)
                     info[0] = sign(info[0])*abs(r1*cos(theta))
                     info[1] = sign(info[1])*abs(r1*sin(theta))
                     self.nodes[n3]=tuple(info)
-                    # print "r3",self.horiz_r(n3)
 
 
 
@@ -481,6 +504,9 @@ class _Mesh_core(object):
 
 
    def __read_surface_fmt(self,path,flag_damp=True):
+       '''
+          Suppose surface only have 8 nodes element
+       '''
 
        with open(path,"r") as f:
           num_elem =[int(i) for i in f.readline().split()][0]

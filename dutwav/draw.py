@@ -427,7 +427,7 @@ class DrawMesh(object):
            f.write(bodystr)
 
 
-               # @func : export surface mesh using polygon,no time info,no nrml info
+    # @func : export surface mesh using polygon,no time info,no nrml info
     def tecplt_value_poly_2(self,path,value):
        print "Nodes Numbering Used"
        print "No Nrml Ouput,No time output"
