@@ -10,7 +10,7 @@ class Wave(object):
 
     def compute_wav_num(sigma,h):
         if (sigma < 0):
-            print "Error,in compute_wav_num, wave_frequency = ", sigma
+            print("Error,in compute_wav_num, wave_frequency = ", sigma)
         else:
             if (h > 0):
                 B = _g*h
@@ -47,9 +47,9 @@ class Wave(object):
         # self.A = data2[1]
     @property
     def info(self):
-        print "wave number: ",self.k,"\n"
-        print "wave frequency: ",self.freq,"\n"
-        print "wave amplitude: ",self.A,"\n"
-        print "water depth: ",self.d,"\n"
-        print "wave angle:",self.beta,"\n"
+        print("wave number: ",self.k,"\n")
+        print("wave frequency: ",self.freq,"\n")
+        print("wave amplitude: ",self.A,"\n")
+        print("water depth: ",self.d,"\n")
+        print("wave angle:",self.beta,"\n")
 

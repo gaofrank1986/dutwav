@@ -23,7 +23,7 @@ class Mesh(_Mesh_core):
 
    #
    def test_dp(self):
-       print self.__cur_avail_nd_id
+       print(self.__cur_avail_nd_id)
 
    # @func : update nrml vecotr for same tag group
    def _update_tag_nrml(self,taglist,vector):
@@ -34,10 +34,10 @@ class Mesh(_Mesh_core):
               info=self.elems[i][POS.NRMLIST]
               for j in info:
                   nset.add(j)
-              print nset    
+              print(nset    )
       for i in nset:
           info = list(self.nrmls[i][0:1])+vector
-          print info
+          print(info)
           self.nrmls[i] = info 
       self._rebuild_rev_info()   
 
@@ -145,7 +145,7 @@ class Mesh(_Mesh_core):
 
    # @func: get set of waterline nodes
    def _get_waterline_node(self):
-       print "elements in mesh must have well-defined tag\n\
+       print("elements in mesh must have well-defined tag\n\)
                only 'body' elements will be looked into"
        nodes=set()
        for i in self.elems:
@@ -159,7 +159,7 @@ class Mesh(_Mesh_core):
        return(nodes)                
 
    def _get_btm_node(self,z=-1):
-       print "elements in mesh must have well-defined tag\n\
+       print("elements in mesh must have well-defined tag\n\)
                only 'body' elements will be looked into"
        nodes=set()
        for i in self.elems:

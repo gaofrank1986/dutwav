@@ -51,7 +51,7 @@ def get_node_linking(edic):
 def get_nrml_on_node(edic):
     nelem = len(edic.keys())
     node_nrml_rela={}
-    print "{:d} elemnts".format(nelem)
+    print("{:d} elemnts".format(nelem))
     for i in range(nelem):
         etype = edic[i+1][1]
         for k in range(etype):#not all elem has 8 node

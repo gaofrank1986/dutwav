@@ -77,7 +77,7 @@ class FreeTerm(object):
 
     def print_fterm(self):
         for (i,key) in self.info.items():
-            print self.result[key]
+            print(self.result[key])
 
     def output_fterm(self,path):
         with open(path,"wb") as f:
@@ -129,7 +129,7 @@ class AnalyticalPotential(object):
         for i in range(niter):
             value={}
             t=i*deltaT
-            print exp(-1j*self.w*t)
+            print(exp(-1j*self.w*t))
             for j in m.nodes:
             # self.waves=self.eti*exp(-1j*self.w*t)
                 tmp = self.eti[j-1]*exp(-1j*self.w*t)
@@ -226,7 +226,7 @@ class ElemValue():
         try:
             value = self.res[nid][eid]
         except:
-            print "Error Accessing, Check input number"
+            print("Error Accessing, Check input number")
         if value:
             for i in value:
                 str1='{0:5d} {0:5d}    '.format(nid,eid)
@@ -234,7 +234,7 @@ class ElemValue():
                 str1+="   "
                 for j in range(8):
                     str1 += "{0:14.8f}".format(value[i][j])
-                print str1
+                print(str1)
 
 
 

@@ -71,7 +71,7 @@ class DrawMesh(object):
         for i in range(len(pi)-1):
             n1=pi[i]
             n2=pi[i+1]
-            print n1,n2
+            print (n1,n2)
             self._draw_line(n1,n2,ax,s=s)
         if len(points)!=0:
             loc=zeros((3,len(points)))
@@ -211,8 +211,8 @@ class DrawMesh(object):
     # @func: use polygon elem,have nrml info,no time info
     # plot tecplot, use node numbering
     def tecplt_poly_2(self,path):
-       print "Nodes Numbering Used"
-       print "No nrml info,No time output"
+       print("Nodes Numbering Used")
+       print("No nrml info,No time output")
        MAX_LINE_HOLD=500
        with open(path,"wb") as f:
            num_pts = len(self.__rMeshObj.nodes)
@@ -260,9 +260,9 @@ class DrawMesh(object):
     # @func : export tecplot mesh using polygon element
     # use nrml for numbering
     def tecplt_poly_1(self,path):
-       print "poly_1"
-       print "nrml Numbering Used"
-       print "No time output"
+       print("poly_1")
+       print("nrml Numbering Used")
+       print("No time output")
        with open(path,"wb") as f:
            num_pts = len(self.__rMeshObj.nrmls)
            num_elem = len(self.__rMeshObj.elems)
@@ -312,8 +312,8 @@ class DrawMesh(object):
 
     # @func : export surface mesh using polygon,no time info,no nrml info
     def tecplt_value_poly(self,path,value):
-       print "Nodes Numbering Used"
-       print "No Nrml Ouput,No time output"
+       print("Nodes Numbering Used")
+       print("No Nrml Ouput,No time output")
        with open(path,"wb") as f:
            num_pts = len(self.__rMeshObj.nodes)
            num_elem = len(self.__rMeshObj.elems)
@@ -363,9 +363,9 @@ class DrawMesh(object):
  # @func : export tecplot mesh using polygon element
     # use nrml for numbering
     def tecplt_poly_3(self,path):
-       print "poly_3"
-       print "nrml Numbering Used"
-       print "No time output"
+       print("poly_3")
+       print("nrml Numbering Used")
+       print("No time output")
        from copy import copy
        with open(path,"wb") as f:
            num_pts = len(self.__rMeshObj.nrmls)
@@ -429,8 +429,8 @@ class DrawMesh(object):
 
     # @func : export surface mesh using polygon,no time info,no nrml info
     def tecplt_value_poly_2(self,path,value):
-       print "Nodes Numbering Used"
-       print "No Nrml Ouput,No time output"
+       print("Nodes Numbering Used")
+       print("No Nrml Ouput,No time output")
        with open(path,"wb") as f:
            num_pts = len(self.__rMeshObj.nodes)
            num_elem = len(self.__rMeshObj.elems)

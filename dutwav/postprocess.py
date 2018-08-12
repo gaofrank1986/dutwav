@@ -59,7 +59,7 @@ def create_animation(mesh,prefix,postfix='.out',loc="./",kind=1):
         if(not(isfile(infile))):
             break
         
-        print infile
+        print(infile)
         outfile=fd+'/'+prefix+'.'+'{0:0>7d}'.format(i)+'.dat'
         (r1,r2,r3)=parse_result(infile)
         mesh.tecplt_value(outfile,[r1,r2,r3],i)
