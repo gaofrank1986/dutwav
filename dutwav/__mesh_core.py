@@ -136,7 +136,7 @@ class _Mesh_core(object):
          if self.elems[i][0] != 'body':
             flag = False
       if not flag:
-         print "Please make sure all elements is defined as 'body'"
+         print ("Please make sure all elements is defined as 'body'")
          return
       self.rev_nm={}
       for i in self.nrmls:
@@ -155,7 +155,7 @@ class _Mesh_core(object):
       '''
           update all nrmls with given vector
       '''
-      print "vector will be auto normalized"
+      print ("vector will be auto normalized")
       assert(len(vector)==3)
       self.rev_nm={}
       for i in self.nrmls:
@@ -469,7 +469,7 @@ class _Mesh_core(object):
          
 
    def __test(self):
-        print "i am here"
+        print("i am here")
         pass
 
 
@@ -505,7 +505,7 @@ class _Mesh_core(object):
        kind = 2, need damp info setup
        currently: only 8-node elem
        """
-       print "only 8-node elem has been implemented"
+       print("only 8-node elem has been implemented")
        
        f_sf = open(path,"w")
        f_sf.write('{0:<5d}'.format(self.__cur_avail_el_id-1) \
@@ -756,7 +756,7 @@ class _Mesh_core(object):
             self.elems[ie].append(tuple(nrmlist))#append updated nrmlist
 
    def __read_external(self,path,vector,z_offset=0.,tag='external'):
-       print "pls make sure edge info is ready,if you want to use old middle points"
+       print("pls make sure edge info is ready,if you want to use old middle points")
        assert(isinstance(vector,list))
        assert(len(vector)==3)
       # vector is nrml vector,kind is elem kind('free','body',or user defined)
@@ -797,7 +797,7 @@ class _Mesh_core(object):
        # TODO throw duplicate elems
        # for i_elem in range(num_add_elem):
        while flag == True:
-           print tmp
+           print(tmp)
            nodelist = []
            ## update node number in nodelist
            for k in range(4):#FIXME add traingle support

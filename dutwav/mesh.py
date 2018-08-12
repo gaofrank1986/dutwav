@@ -145,8 +145,8 @@ class Mesh(_Mesh_core):
 
    # @func: get set of waterline nodes
    def _get_waterline_node(self):
-       print("elements in mesh must have well-defined tag\n\)
-               only 'body' elements will be looked into"
+       print("elements in mesh must have well-defined tag\n\
+               only 'body' elements will be looked into")
        nodes=set()
        for i in self.elems:
            info = self.elems[i]
@@ -159,8 +159,8 @@ class Mesh(_Mesh_core):
        return(nodes)                
 
    def _get_btm_node(self,z=-1):
-       print("elements in mesh must have well-defined tag\n\)
-               only 'body' elements will be looked into"
+       print("elements in mesh must have well-defined tag\n\
+               only 'body' elements will be looked into")
        nodes=set()
        for i in self.elems:
            info = self.elems[i]
